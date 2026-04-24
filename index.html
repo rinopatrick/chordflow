@@ -5,176 +5,106 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ChordFlow — Hand-Tracking Chord Controller</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap');
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Space Grotesk', sans-serif;
-            background: #0a0a0f;
+            background: #000;
             color: #e0e0e0;
-            min-height: 100vh;
-            overflow: hidden;
-        }
-
-        .app {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
+            width: 100vw;
             height: 100vh;
-            gap: 0;
-        }
-
-        /* === LEFT PANEL: Degree Wheel === */
-        .wheel-panel {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            border-right: 1px solid #1a1a2e;
-        }
-
-        .wheel-panel h3 {
-            position: absolute;
-            top: 20px;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: #555;
-            font-weight: 600;
-        }
-
-        .wheel-canvas {
-            cursor: default;
-        }
-
-        /* === CENTER: Webcam + Info === */
-        .center-panel {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            background: #08080d;
-        }
-
-        .webcam-container {
-            position: relative;
-            width: 480px;
-            height: 360px;
-            border-radius: 16px;
             overflow: hidden;
-            border: 2px solid #1a1a2e;
         }
 
         #webcam {
-            width: 100%;
-            height: 100%;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw;
+            height: 100vh;
             object-fit: cover;
             transform: scaleX(-1);
+            z-index: 1;
         }
 
-        #handCanvas {
-            position: absolute;
+        #overlay {
+            position: fixed;
             top: 0; left: 0;
-            width: 100%;
-            height: 100%;
-            transform: scaleX(-1);
+            width: 100vw;
+            height: 100vh;
+            z-index: 2;
         }
 
-        .active-chord {
-            margin-top: 24px;
+        .chord-display {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
             text-align: center;
+            z-index: 10;
+            pointer-events: none;
         }
 
-        .active-chord .key-label {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: #555;
-            margin-bottom: 4px;
-        }
-
-        .active-chord .chord-name {
+        .chord-display .chord-name {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 3rem;
+            font-size: 4rem;
             font-weight: 700;
             color: #fff;
-            text-shadow: 0 0 30px rgba(99, 102, 241, 0.5);
-            min-height: 4rem;
+            text-shadow: 0 0 40px rgba(99,102,241,0.6), 0 0 80px rgba(139,92,246,0.3);
+            min-height: 5rem;
+            letter-spacing: -2px;
         }
 
-        .active-chord .notes-label {
+        .chord-display .chord-notes {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.9rem;
-            color: #666;
+            font-size: 1.1rem;
+            color: rgba(255,255,255,0.5);
             margin-top: 4px;
         }
 
-        .transpose-info {
-            margin-top: 12px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .transpose-info .key-display {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 1.1rem;
-            color: #888;
-            padding: 6px 16px;
-            background: #111118;
-            border-radius: 8px;
-            border: 1px solid #222;
-        }
-
-        .transpose-info .gesture-hint {
-            font-size: 0.7rem;
-            color: #444;
-            text-align: center;
-            line-height: 1.5;
-        }
-
-        /* === RIGHT PANEL: Quality Wheel === */
-        .quality-panel {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            border-left: 1px solid #1a1a2e;
-        }
-
-        .quality-panel h3 {
-            position: absolute;
-            top: 20px;
-            font-size: 0.75rem;
+        .chord-display .key-display {
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.35);
             text-transform: uppercase;
-            letter-spacing: 2px;
-            color: #555;
-            font-weight: 600;
+            letter-spacing: 3px;
         }
 
-        /* === TOP BAR === */
-        .top-bar {
+        .wheel-label {
             position: fixed;
-            top: 0; left: 0; right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #6366f1, #8b5cf6, #ec4899);
-            z-index: 100;
+            z-index: 10;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: rgba(255,255,255,0.3);
+            font-weight: 600;
+            pointer-events: none;
+        }
+
+        .wheel-label.left {
+            top: 30px;
+            left: 50%;
+            transform: translateX(-200px);
+        }
+
+        .wheel-label.right {
+            top: 30px;
+            left: 50%;
+            transform: translateX(60px);
         }
 
         /* === START OVERLAY === */
         .start-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(10, 10, 15, 0.95);
+            background: rgba(0,0,0,0.92);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             z-index: 200;
-            transition: opacity 0.5s;
+            transition: opacity 0.6s;
         }
 
         .start-overlay.hidden {
@@ -183,7 +113,7 @@
         }
 
         .start-overlay h1 {
-            font-size: 2.5rem;
+            font-size: 3rem;
             font-weight: 700;
             background: linear-gradient(135deg, #6366f1, #ec4899);
             -webkit-background-clip: text;
@@ -193,19 +123,19 @@
         }
 
         .start-overlay p {
-            color: #666;
+            color: #555;
             margin-bottom: 30px;
             font-size: 0.9rem;
         }
 
         .start-btn {
-            padding: 14px 40px;
+            padding: 16px 48px;
             background: linear-gradient(135deg, #6366f1, #8b5cf6);
             color: #fff;
             border: none;
-            border-radius: 12px;
+            border-radius: 14px;
             font-family: 'Space Grotesk', sans-serif;
-            font-size: 1rem;
+            font-size: 1.1rem;
             font-weight: 600;
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
@@ -213,96 +143,87 @@
 
         .start-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 30px rgba(99, 102, 241, 0.3);
+            box-shadow: 0 8px 30px rgba(99,102,241,0.4);
         }
 
         .start-instructions {
-            margin-top: 30px;
+            margin-top: 40px;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            max-width: 500px;
+            gap: 14px;
+            max-width: 440px;
         }
 
         .instruction-card {
-            background: #111118;
-            border: 1px solid #1a1a2e;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
             border-radius: 12px;
-            padding: 16px;
+            padding: 18px 14px;
             text-align: center;
         }
 
-        .instruction-card .icon {
-            font-size: 1.5rem;
-            margin-bottom: 6px;
-        }
+        .instruction-card .icon { font-size: 1.6rem; margin-bottom: 8px; }
+        .instruction-card .label { font-size: 0.75rem; color: #777; line-height: 1.5; }
 
-        .instruction-card .label {
-            font-size: 0.75rem;
-            color: #888;
-            line-height: 1.4;
-        }
-
-        /* === FOOTER === */
-        .footer {
-            position: fixed;
-            bottom: 0; left: 0; right: 0;
-            text-align: center;
-            padding: 8px;
-            font-size: 0.65rem;
-            color: #333;
-            z-index: 50;
-        }
-
-        /* === RIPPLE EFFECT === */
-        .ripple {
-            position: absolute;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(99,102,241,0.4), transparent);
-            pointer-events: none;
-            animation: rippleAnim 0.6s ease-out forwards;
-        }
-
-        @keyframes rippleAnim {
-            0% { transform: scale(0.5); opacity: 1; }
-            100% { transform: scale(2.5); opacity: 0; }
-        }
-
-        /* === GESTURE FEEDBACK === */
+        /* === GESTURE TOAST === */
         .gesture-feedback {
             position: fixed;
             top: 20px;
-            right: 20px;
+            left: 50%;
+            transform: translateX(-50%);
             display: flex;
             flex-direction: column;
+            align-items: center;
             gap: 8px;
             z-index: 150;
         }
 
         .gesture-toast {
-            padding: 8px 16px;
-            background: #111118;
-            border: 1px solid #222;
-            border-radius: 8px;
-            font-size: 0.8rem;
-            color: #aaa;
-            animation: slideIn 0.3s ease-out;
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            padding: 10px 22px;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            font-size: 0.9rem;
+            color: #ccc;
+            animation: toastIn 0.3s ease-out;
+            font-weight: 600;
         }
 
-        .gesture-toast.transpose-up { border-color: #22c55e; color: #4ade80; }
-        .gesture-toast.transpose-down { border-color: #ef4444; color: #f87171; }
+        .gesture-toast.up { border-color: #22c55e; color: #4ade80; }
+        .gesture-toast.down { border-color: #ef4444; color: #f87171; }
 
-        @keyframes slideIn {
-            0% { transform: translateX(100px); opacity: 0; }
-            100% { transform: translateX(0); opacity: 1; }
+        @keyframes toastIn {
+            0% { transform: translateY(-20px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+
+        .dim-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.25);
+            z-index: 1;
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
-    <div class="top-bar"></div>
+    <video id="webcam" autoplay playsinline></video>
+    <div class="dim-overlay"></div>
+    <canvas id="overlay"></canvas>
+
+    <div class="wheel-label left" id="degreeLabel">Scale Degree</div>
+    <div class="wheel-label right" id="qualityLabel">Chord Quality</div>
+
+    <div class="chord-display">
+        <div class="chord-name" id="chordName">—</div>
+        <div class="chord-notes" id="chordNotes"></div>
+        <div class="key-display" id="keyDisplay">Key of C</div>
+    </div>
+
+    <div class="gesture-feedback" id="gestureFeedback"></div>
 
     <div class="start-overlay" id="startOverlay">
         <h1>ChordFlow</h1>
@@ -311,138 +232,72 @@
         <div class="start-instructions">
             <div class="instruction-card">
                 <div class="icon">👆</div>
-                <div class="label">Point finger at left wheel to pick degree (1-7)</div>
+                <div class="label">Point at left wheel for scale degree (I–VII)</div>
             </div>
             <div class="instruction-card">
                 <div class="icon">👉</div>
-                <div class="label">Point finger at right wheel to pick quality (maj, min, dim...)</div>
+                <div class="label">Point at right wheel for chord quality</div>
             </div>
             <div class="instruction-card">
                 <div class="icon">👍</div>
-                <div class="label">Thumbs up to transpose key up</div>
+                <div class="label">Thumbs up = transpose key up</div>
             </div>
             <div class="instruction-card">
                 <div class="icon">👎</div>
-                <div class="label">Thumbs down to transpose key down</div>
+                <div class="label">Thumbs down = transpose key down</div>
             </div>
         </div>
     </div>
 
-    <div class="gesture-feedback" id="gestureFeedback"></div>
-
-    <div class="app">
-        <div class="wheel-panel">
-            <h3>Scale Degree</h3>
-            <canvas id="degreeWheel" class="wheel-canvas" width="380" height="380"></canvas>
-        </div>
-
-        <div class="center-panel">
-            <div class="webcam-container">
-                <video id="webcam" autoplay playsinline></video>
-                <canvas id="handCanvas"></canvas>
-            </div>
-            <div class="active-chord">
-                <div class="key-label">Active Chord</div>
-                <div class="chord-name" id="chordName">—</div>
-                <div class="notes-label" id="chordNotes"></div>
-            </div>
-            <div class="transpose-info">
-                <div class="key-display" id="keyDisplay">Key: C</div>
-                <div class="gesture-hint">👍 Transpose Up&nbsp;&nbsp;👎 Transpose Down</div>
-            </div>
-        </div>
-
-        <div class="quality-panel">
-            <h3>Chord Quality</h3>
-            <canvas id="qualityWheel" class="wheel-canvas" width="380" height="380"></canvas>
-        </div>
-    </div>
-
-    <div class="footer">ChordFlow — Hand-tracking chord controller</div>
-
-    <!-- MediaPipe -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
 
     <script>
     (() => {
-        // ========== CHORD THEORY ENGINE ==========
+        // ========== CHORD THEORY ==========
         const NOTES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
         const DEGREE_LABELS = ['I','II','III','IV','V','VI','VII'];
         const QUALITIES = [
-            { name: 'maj',  label: 'Major',     intervals: [0,4,7] },
-            { name: 'min',  label: 'Minor',     intervals: [0,3,7] },
-            { name: 'dim',  label: 'Dim',       intervals: [0,3,6] },
-            { name: 'aug',  label: 'Aug',       intervals: [0,4,8] },
-            { name: '7',    label: '7th',       intervals: [0,4,7,10] },
-            { name: 'maj7', label: 'Maj7',      intervals: [0,4,7,11] },
-            { name: 'min7', label: 'Min7',      intervals: [0,3,7,10] },
-            { name: 'sus2', label: 'Sus2',      intervals: [0,2,7] },
-            { name: 'sus4', label: 'Sus4',      intervals: [0,5,7] },
-            { name: 'add9', label: 'Add9',      intervals: [0,4,7,14] },
+            { name:'maj',  label:'Major',  intervals:[0,4,7] },
+            { name:'min',  label:'Minor',  intervals:[0,3,7] },
+            { name:'dim',  label:'Dim',    intervals:[0,3,6] },
+            { name:'aug',  label:'Aug',    intervals:[0,4,8] },
+            { name:'7',    label:'7th',    intervals:[0,4,7,10] },
+            { name:'maj7', label:'Maj7',   intervals:[0,4,7,11] },
+            { name:'min7', label:'Min7',   intervals:[0,3,7,10] },
+            { name:'sus2', label:'Sus2',   intervals:[0,2,7] },
+            { name:'sus4', label:'Sus4',   intervals:[0,5,7] },
+            { name:'add9', label:'Add9',   intervals:[0,4,7,14] },
         ];
+        const MAJOR_SCALE = [0,2,4,5,7,9,11];
+        const DEGREE_COLORS = ['#6366f1','#8b5cf6','#a855f7','#d946ef','#ec4899','#f43f5e','#f97316'];
+        const QUALITY_COLORS = ['#3b82f6','#22c55e','#eab308','#f97316','#ef4444','#8b5cf6','#06b6d4','#84cc16','#f43f5e','#6366f1'];
 
-        // Major scale intervals (in semitones)
-        const MAJOR_SCALE = [0, 2, 4, 5, 7, 9, 11];
-
-        let currentKeyIndex = 0; // 0 = C
-        let currentDegree = null; // 0-6
-        let currentQuality = null; // 0-9
+        let currentKeyIndex = 0;
+        let currentDegree = null;
+        let currentQuality = null;
         let lastChordName = '';
 
-        function getKey() { return NOTES[currentKeyIndex]; }
+        const getKey = () => NOTES[currentKeyIndex];
+        const getDegreeNote = (d) => NOTES[(currentKeyIndex + MAJOR_SCALE[d]) % 12];
+        const getChordNotes = (d,q) => QUALITIES[q].intervals.map(i => ((currentKeyIndex + MAJOR_SCALE[d]) % 12 + i) % 12);
+        const getChordName = (d,q) => `${getDegreeNote(d)}${QUALITIES[q].name}`;
+        const formatNotes = (n) => n.map(i => NOTES[i % 12]).join(' — ');
+        const transposeUp = () => { currentKeyIndex = (currentKeyIndex + 1) % 12; updateKeyDisplay(); };
+        const transposeDown = () => { currentKeyIndex = (currentKeyIndex + 11) % 12; updateKeyDisplay(); };
+        const updateKeyDisplay = () => { document.getElementById('keyDisplay').textContent = `Key of ${getKey()}`; };
 
-        function getDegreeNote(degree) {
-            const rootSemitone = MAJOR_SCALE[degree];
-            return NOTES[(currentKeyIndex + rootSemitone) % 12];
-        }
-
-        function getChordNotes(degree, qualityIdx) {
-            const rootSemitone = MAJOR_SCALE[degree];
-            const rootNote = (currentKeyIndex + rootSemitone) % 12;
-            const quality = QUALITIES[qualityIdx];
-            return quality.intervals.map(i => (rootNote + i) % 12);
-        }
-
-        function getChordName(degree, qualityIdx) {
-            const root = getDegreeNote(degree);
-            const quality = QUALITIES[qualityIdx];
-            return `${root}${quality.name}`;
-        }
-
-        function formatNotes(noteIndices) {
-            return noteIndices.map(i => NOTES[i % 12]).join(' - ');
-        }
-
-        function transposeUp() {
-            currentKeyIndex = (currentKeyIndex + 1) % 12;
-            updateKeyDisplay();
-        }
-
-        function transposeDown() {
-            currentKeyIndex = (currentKeyIndex + 11) % 12;
-            updateKeyDisplay();
-        }
-
-        function updateKeyDisplay() {
-            document.getElementById('keyDisplay').textContent = `Key: ${getKey()}`;
-        }
-
-        // ========== AUDIO ENGINE ==========
+        // ========== AUDIO ==========
         let audioCtx = null;
-        let activeOscillators = [];
+        let activeOsc = [];
         let activeGain = null;
 
         function initAudio() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
 
-        function noteToFreq(noteIndex) {
-            // A4 = 440Hz, A = noteIndex 9
-            const midiNote = noteIndex + 60; // Start from C4 (MIDI 60)
-            return 440 * Math.pow(2, (midiNote - 69) / 12);
+        function noteToFreq(ni) {
+            return 440 * Math.pow(2, (ni + 60 - 69) / 12);
         }
 
         function playChord(noteIndices) {
@@ -451,150 +306,182 @@
 
             activeGain = audioCtx.createGain();
             activeGain.gain.setValueAtTime(0, audioCtx.currentTime);
-            activeGain.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 0.05);
+            activeGain.gain.linearRampToValueAtTime(0.12, audioCtx.currentTime + 0.04);
             activeGain.connect(audioCtx.destination);
 
-            noteIndices.forEach(noteIdx => {
-                // Main oscillator (triangle for guitar-like sound)
+            noteIndices.forEach(ni => {
                 const osc = audioCtx.createOscillator();
                 osc.type = 'triangle';
-                osc.frequency.setValueAtTime(noteToFreq(noteIdx), audioCtx.currentTime);
+                osc.frequency.value = noteToFreq(ni);
 
-                // Sub oscillator for body
                 const sub = audioCtx.createOscillator();
                 sub.type = 'sine';
-                sub.frequency.setValueAtTime(noteToFreq(noteIdx), audioCtx.currentTime);
+                sub.frequency.value = noteToFreq(ni);
 
-                const oscGain = audioCtx.createGain();
-                oscGain.gain.setValueAtTime(0.6, audioCtx.currentTime);
-                const subGain = audioCtx.createGain();
-                subGain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                const oG = audioCtx.createGain(); oG.gain.value = 0.5;
+                const sG = audioCtx.createGain(); sG.gain.value = 0.25;
 
-                osc.connect(oscGain).connect(activeGain);
-                sub.connect(subGain).connect(activeGain);
-
-                osc.start();
-                sub.start();
-                activeOscillators.push(osc, sub);
+                osc.connect(oG).connect(activeGain);
+                sub.connect(sG).connect(activeGain);
+                osc.start(); sub.start();
+                activeOsc.push(osc, sub);
             });
         }
 
         function stopChord() {
             if (activeGain) {
-                activeGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+                activeGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.08);
                 activeGain = null;
             }
-            activeOscillators.forEach(osc => {
-                try { osc.stop(audioCtx.currentTime + 0.15); } catch(e) {}
-            });
-            activeOscillators = [];
+            activeOsc.forEach(o => { try { o.stop(audioCtx.currentTime + 0.1); } catch(e) {} });
+            activeOsc = [];
         }
 
-        // ========== WHEEL RENDERING ==========
-        const DEGREE_COLORS = [
-            '#6366f1','#8b5cf6','#a855f7','#d946ef',
-            '#ec4899','#f43f5e','#f97316'
-        ];
-        const QUALITY_COLORS = [
-            '#3b82f6','#22c55e','#eab308','#f97316',
-            '#ef4444','#8b5cf6','#06b6d4','#84cc16','#f43f5e','#6366f1'
-        ];
+        // ========== WHEEL GEOMETRY ==========
+        // Wheels are defined in normalized screen coordinates (0-1)
+        const degreeWheel = { cx: 0.22, cy: 0.42, outerR: 0.16, innerR: 0.07 };
+        const qualityWheel = { cx: 0.78, cy: 0.42, outerR: 0.16, innerR: 0.07 };
 
-        function drawWheel(canvasId, segments, colors, activeIdx, labels) {
-            const canvas = document.getElementById(canvasId);
-            const ctx = canvas.getContext('2d');
-            const cx = canvas.width / 2;
-            const cy = canvas.height / 2;
-            const outerR = 170;
-            const innerR = 80;
-            const sliceAngle = (2 * Math.PI) / segments;
+        function getWheelPixel(w) {
+            const s = Math.min(window.innerWidth, window.innerHeight);
+            return {
+                cx: w.cx * window.innerWidth,
+                cy: w.cy * window.innerHeight,
+                outerR: w.outerR * s,
+                innerR: w.innerR * s
+            };
+        }
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // ========== RENDER ==========
+        const overlayCanvas = document.getElementById('overlay');
+        const ctx = overlayCanvas.getContext('2d');
 
-            // Draw slices
+        function resize() {
+            overlayCanvas.width = window.innerWidth;
+            overlayCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function hexToRGBA(hex, a) {
+            const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+            return `rgba(${r},${g},${b},${a})`;
+        }
+
+        function drawWheel(w, segments, colors, activeIdx, labels) {
+            const p = getWheelPixel(w);
+            const sliceAngle = (Math.PI * 2) / segments;
+
             for (let i = 0; i < segments; i++) {
-                const startAngle = -Math.PI / 2 + i * sliceAngle;
-                const endAngle = startAngle + sliceAngle;
+                const start = -Math.PI/2 + i * sliceAngle;
+                const end = start + sliceAngle;
                 const isActive = i === activeIdx;
 
-                // Slice fill
                 ctx.beginPath();
-                ctx.arc(cx, cy, outerR, startAngle, endAngle);
-                ctx.arc(cx, cy, innerR, endAngle, startAngle, true);
+                ctx.arc(p.cx, p.cy, p.outerR, start, end);
+                ctx.arc(p.cx, p.cy, p.innerR, end, start, true);
                 ctx.closePath();
 
-                const alpha = isActive ? 0.9 : 0.25;
-                ctx.fillStyle = hexToRGBA(colors[i % colors.length], alpha);
+                ctx.fillStyle = hexToRGBA(colors[i % colors.length], isActive ? 0.85 : 0.2);
                 ctx.fill();
 
-                // Border
-                ctx.strokeStyle = isActive ? colors[i % colors.length] : '#1a1a2e';
-                ctx.lineWidth = isActive ? 2 : 1;
-                ctx.stroke();
-
-                // Glow for active
                 if (isActive) {
+                    ctx.save();
                     ctx.shadowColor = colors[i % colors.length];
-                    ctx.shadowBlur = 20;
+                    ctx.shadowBlur = 30;
+                    ctx.fillStyle = hexToRGBA(colors[i % colors.length], 0.6);
                     ctx.fill();
-                    ctx.shadowBlur = 0;
+                    ctx.restore();
                 }
 
+                ctx.strokeStyle = isActive ? colors[i % colors.length] : 'rgba(255,255,255,0.08)';
+                ctx.lineWidth = isActive ? 2 : 0.5;
+                ctx.stroke();
+
                 // Label
-                const labelAngle = startAngle + sliceAngle / 2;
-                const labelR = (outerR + innerR) / 2;
-                const lx = cx + Math.cos(labelAngle) * labelR;
-                const ly = cy + Math.sin(labelAngle) * labelR;
+                const la = start + sliceAngle / 2;
+                const lr = (p.outerR + p.innerR) / 2;
+                const lx = p.cx + Math.cos(la) * lr;
+                const ly = p.cy + Math.sin(la) * lr;
 
                 ctx.save();
                 ctx.translate(lx, ly);
-                ctx.fillStyle = isActive ? '#fff' : '#666';
-                ctx.font = isActive ? 'bold 16px "JetBrains Mono"' : '13px "JetBrains Mono"';
+                ctx.fillStyle = isActive ? '#fff' : 'rgba(255,255,255,0.35)';
+                ctx.font = isActive ? `bold ${Math.max(12, p.outerR * 0.1)}px "JetBrains Mono"` : `${Math.max(10, p.outerR * 0.08)}px "JetBrains Mono"`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(labels[i], 0, 0);
+                const lines = labels[i].split('\n');
+                lines.forEach((line, li) => {
+                    ctx.fillText(line, 0, (li - (lines.length-1)/2) * (isActive ? 16 : 13));
+                });
                 ctx.restore();
             }
 
-            // Center circle
+            // Center
             ctx.beginPath();
-            ctx.arc(cx, cy, innerR - 4, 0, Math.PI * 2);
-            ctx.fillStyle = '#0a0a0f';
+            ctx.arc(p.cx, p.cy, p.innerR - 2, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
             ctx.fill();
-            ctx.strokeStyle = '#1a1a2e';
+            ctx.strokeStyle = 'rgba(255,255,255,0.06)';
             ctx.lineWidth = 1;
             ctx.stroke();
         }
 
-        function hexToRGBA(hex, alpha) {
-            const r = parseInt(hex.slice(1,3), 16);
-            const g = parseInt(hex.slice(3,5), 16);
-            const b = parseInt(hex.slice(5,7), 16);
-            return `rgba(${r},${g},${b},${alpha})`;
+        function drawFingertip(fx, fy) {
+            // Draw a soft glow at fingertip position on overlay
+            const sx = (1 - fx) * overlayCanvas.width;  // mirror X
+            const sy = fy * overlayCanvas.height;
+            const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, 30);
+            grad.addColorStop(0, 'rgba(99,102,241,0.6)');
+            grad.addColorStop(1, 'rgba(99,102,241,0)');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(sx, sy, 30, 0, Math.PI * 2);
+            ctx.fill();
         }
 
-        function renderWheels() {
-            const degreeLabels = DEGREE_LABELS.map((label, i) => `${label}\n${getDegreeNote(i)}`);
-            drawWheel('degreeWheel', 7, DEGREE_COLORS, currentDegree, degreeLabels);
+        function drawHandSkeleton(landmarks) {
+            const connections = [
+                [0,1],[1,2],[2,3],[3,4],
+                [0,5],[5,6],[6,7],[7,8],
+                [5,9],[9,10],[10,11],[11,12],
+                [9,13],[13,14],[14,15],[15,16],
+                [13,17],[17,18],[18,19],[19,20],
+                [0,17]
+            ];
 
-            const qualityLabels = QUALITIES.map(q => q.label);
-            drawWheel('qualityWheel', QUALITIES.length, QUALITY_COLORS, currentQuality, qualityLabels);
+            ctx.strokeStyle = 'rgba(139,92,246,0.3)';
+            ctx.lineWidth = 2;
+            connections.forEach(([a,b]) => {
+                const ax = (1 - landmarks[a].x) * overlayCanvas.width;
+                const ay = landmarks[a].y * overlayCanvas.height;
+                const bx = (1 - landmarks[b].x) * overlayCanvas.width;
+                const by = landmarks[b].y * overlayCanvas.height;
+                ctx.beginPath();
+                ctx.moveTo(ax, ay);
+                ctx.lineTo(bx, by);
+                ctx.stroke();
+            });
+
+            landmarks.forEach((lm, i) => {
+                const x = (1 - lm.x) * overlayCanvas.width;
+                const y = lm.y * overlayCanvas.height;
+                ctx.beginPath();
+                ctx.arc(x, y, i === 8 ? 5 : 2.5, 0, Math.PI * 2);
+                ctx.fillStyle = i === 8 ? '#6366f1' : 'rgba(139,92,246,0.5)';
+                ctx.fill();
+            });
         }
 
         // ========== HAND TRACKING ==========
         let hands = null;
         let camera = null;
-        let fingertipPos = null; // {x, y} normalized 0-1
-        let thumbPos = null;
+        let fingertipPos = null;
+        let lastLandmarks = null;
         let gestureState = { lastThumbsUp: 0, lastThumbsDown: 0 };
 
         function initHandTracking() {
             const video = document.getElementById('webcam');
-            const handCanvas = document.getElementById('handCanvas');
-            const handCtx = handCanvas.getContext('2d');
-
-            handCanvas.width = 480;
-            handCanvas.height = 360;
 
             hands = new Hands({
                 locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`
@@ -608,212 +495,159 @@
             });
 
             hands.onResults((results) => {
-                handCtx.clearRect(0, 0, handCanvas.width, handCanvas.height);
-
                 if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                    const landmarks = results.multiHandLandmarks[0];
-                    drawHand(handCtx, landmarks);
-
-                    // Index fingertip = landmark 8
-                    const indexTip = landmarks[8];
-                    fingertipPos = { x: indexTip.x, y: indexTip.y };
-
-                    // Thumb tip = landmark 4
-                    thumbPos = { x: landmarks[4].x, y: landmarks[4].y };
-
-                    // Detect thumbs up/down gesture
-                    detectThumbGesture(landmarks);
+                    const lm = results.multiHandLandmarks[0];
+                    lastLandmarks = lm;
+                    fingertipPos = { x: lm[8].x, y: lm[8].y };
+                    detectThumbGesture(lm);
                 } else {
+                    lastLandmarks = null;
                     fingertipPos = null;
-                    thumbPos = null;
                     currentDegree = null;
                     currentQuality = null;
-                    stopChord();
-                    document.getElementById('chordName').textContent = '—';
-                    document.getElementById('chordNotes').textContent = '';
-                    renderWheels();
+                    if (lastChordName !== '') {
+                        lastChordName = '';
+                        stopChord();
+                        document.getElementById('chordName').textContent = '—';
+                        document.getElementById('chordNotes').textContent = '';
+                    }
                 }
             });
 
             camera = new Camera(video, {
-                onFrame: async () => {
-                    await hands.send({ image: video });
-                },
-                width: 480,
-                height: 360,
+                onFrame: async () => { await hands.send({ image: video }); },
+                width: 1280,
+                height: 720,
             });
 
             camera.start();
         }
 
-        function drawHand(ctx, landmarks) {
-            // Draw connections
-            const connections = [
-                [0,1],[1,2],[2,3],[3,4],
-                [0,5],[5,6],[6,7],[7,8],
-                [5,9],[9,10],[10,11],[11,12],
-                [9,13],[13,14],[14,15],[15,16],
-                [13,17],[17,18],[18,19],[19,20],
-                [0,17]
-            ];
-
-            ctx.strokeStyle = 'rgba(99, 102, 241, 0.4)';
-            ctx.lineWidth = 2;
-            connections.forEach(([a, b]) => {
-                ctx.beginPath();
-                ctx.moveTo(landmarks[a].x * ctx.canvas.width, landmarks[a].y * ctx.canvas.height);
-                ctx.lineTo(landmarks[b].x * ctx.canvas.width, landmarks[b].y * ctx.canvas.height);
-                ctx.stroke();
-            });
-
-            // Draw landmarks
-            landmarks.forEach((lm, i) => {
-                ctx.beginPath();
-                ctx.arc(lm.x * ctx.canvas.width, lm.y * ctx.canvas.height, i === 8 ? 6 : 3, 0, Math.PI * 2);
-                ctx.fillStyle = i === 8 ? '#6366f1' : 'rgba(139, 92, 246, 0.6)';
-                ctx.fill();
-            });
-
-            // Glow on index fingertip
-            const tip = landmarks[8];
-            ctx.beginPath();
-            ctx.arc(tip.x * ctx.canvas.width, tip.y * ctx.canvas.height, 12, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(99, 102, 241, 0.2)';
-            ctx.fill();
-        }
-
-        function detectThumbGesture(landmarks) {
+        function detectThumbGesture(lm) {
             const now = Date.now();
-            const wrist = landmarks[0];
-            const thumbTip = landmarks[4];
-            const indexTip = landmarks[8];
-            const middleTip = landmarks[12];
-            const ringTip = landmarks[16];
-            const pinkyTip = landmarks[20];
-            const indexMcp = landmarks[5];
-            const middleMcp = landmarks[9];
-            const ringMcp = landmarks[13];
-            const pinkyMcp = landmarks[17];
+            const wrist = lm[0], thumbTip = lm[4];
+            const indexTip = lm[8], middleTip = lm[12], ringTip = lm[16], pinkyTip = lm[20];
+            const indexMcp = lm[5], middleMcp = lm[9], ringMcp = lm[13], pinkyMcp = lm[17];
 
-            // Check if fingers are curled (tips below MCPs in y)
-            const indexCurled = indexTip.y > indexMcp.y;
-            const middleCurled = middleTip.y > middleMcp.y;
-            const ringCurled = ringTip.y > ringMcp.y;
-            const pinkyCurled = pinkyTip.y > pinkyMcp.y;
+            const curled = indexTip.y > indexMcp.y && middleTip.y > middleMcp.y && ringTip.y > ringMcp.y && pinkyTip.y > pinkyMcp.y;
 
-            const allFingersCurled = indexCurled && middleCurled && ringCurled && pinkyCurled;
-
-            if (allFingersCurled) {
-                // Thumbs up: thumb tip above wrist (lower y)
-                if (thumbTip.y < wrist.y - 0.1 && (now - gestureState.lastThumbsUp > 1500)) {
+            if (curled) {
+                if (thumbTip.y < wrist.y - 0.1 && (now - gestureState.lastThumbsUp > 1200)) {
                     gestureState.lastThumbsUp = now;
                     transposeUp();
-                    showGestureToast('transpose-up', '👍 Key up → ' + getKey());
+                    showToast('up', `👍 Key up → ${getKey()}`);
                 }
-                // Thumbs down: thumb tip below wrist (higher y)
-                if (thumbTip.y > wrist.y + 0.1 && (now - gestureState.lastThumbsDown > 1500)) {
+                if (thumbTip.y > wrist.y + 0.1 && (now - gestureState.lastThumbsDown > 1200)) {
                     gestureState.lastThumbsDown = now;
                     transposeDown();
-                    showGestureToast('transpose-down', '👎 Key down → ' + getKey());
+                    showToast('down', `👎 Key down → ${getKey()}`);
                 }
             }
         }
 
-        // ========== WHEEL HIT DETECTION ==========
-        function checkWheelHit() {
-            if (!fingertipPos) return;
+        // ========== HIT DETECTION (normalized coords) ==========
+        function hitTestWheel(fx, fy, w, segments) {
+            // Convert finger pos to screen (mirrored)
+            const sx = (1 - fx) * window.innerWidth;
+            const sy = fy * window.innerHeight;
+            const p = getWheelPixel(w);
 
-            const video = document.getElementById('webcam');
-            const videoRect = video.getBoundingClientRect();
+            const dx = sx - p.cx;
+            const dy = sy - p.cy;
+            const dist = Math.sqrt(dx*dx + dy*dy);
 
-            // Degree wheel
-            const degreeCanvas = document.getElementById('degreeWheel');
-            const degreeRect = degreeCanvas.getBoundingClientRect();
-            const degreeCx = degreeRect.left + degreeRect.width / 2;
-            const degreeCy = degreeRect.top + degreeRect.height / 2;
-            const degreeOuterR = degreeRect.width / 2 * (170 / 190);
-            const degreeInnerR = degreeRect.width / 2 * (80 / 190);
-
-            // Quality wheel
-            const qualityCanvas = document.getElementById('qualityWheel');
-            const qualityRect = qualityCanvas.getBoundingClientRect();
-            const qualityCx = qualityRect.left + qualityRect.width / 2;
-            const qualityCy = qualityRect.top + qualityRect.height / 2;
-            const qualityOuterR = qualityRect.width / 2 * (170 / 190);
-            const qualityInnerR = qualityRect.width / 2 * (80 / 190);
-
-            // Convert fingertip to screen coordinates
-            // Mirror X because webcam is mirrored
-            const fingerScreenX = (1 - fingertipPos.x) * videoRect.width + videoRect.left;
-            const fingerScreenY = fingertipPos.y * videoRect.height + videoRect.top;
-
-            let newDegree = null;
-            let newQuality = null;
-
-            // Check degree wheel
-            const ddx = fingerScreenX - degreeCx;
-            const ddy = fingerScreenY - degreeCy;
-            const ddist = Math.sqrt(ddx * ddx + ddy * ddy);
-
-            if (ddist >= degreeInnerR && ddist <= degreeOuterR) {
-                let angle = Math.atan2(ddy, ddx) + Math.PI / 2;
+            if (dist >= p.innerR && dist <= p.outerR) {
+                let angle = Math.atan2(dy, dx) + Math.PI / 2;
                 if (angle < 0) angle += Math.PI * 2;
-                newDegree = Math.floor(angle / (Math.PI * 2 / 7));
-                if (newDegree >= 7) newDegree = 6;
+                let idx = Math.floor(angle / (Math.PI * 2 / segments));
+                if (idx >= segments) idx = segments - 1;
+                return idx;
+            }
+            return null;
+        }
+
+        function processFrame() {
+            // Clear overlay
+            ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+
+            // Draw hand skeleton
+            if (lastLandmarks) {
+                drawHandSkeleton(lastLandmarks);
             }
 
-            // Check quality wheel
-            const qdx = fingerScreenX - qualityCx;
-            const qdy = fingerScreenY - qualityCy;
-            const qdist = Math.sqrt(qdx * qdx + qdy * qdy);
+            // Hit test wheels
+            if (fingertipPos) {
+                currentDegree = hitTestWheel(fingertipPos.x, fingertipPos.y, degreeWheel, 7);
+                currentQuality = hitTestWheel(fingertipPos.x, fingertipPos.y, qualityWheel, QUALITIES.length);
 
-            if (qdist >= qualityInnerR && qdist <= qualityOuterR) {
-                let angle = Math.atan2(qdy, qdx) + Math.PI / 2;
-                if (angle < 0) angle += Math.PI * 2;
-                newQuality = Math.floor(angle / (Math.PI * 2 / QUALITIES.length));
-                if (newQuality >= QUALITIES.length) newQuality = QUALITIES.length - 1;
-            }
+                drawFingertip(fingertipPos.x, fingertipPos.y);
 
-            currentDegree = newDegree;
-            currentQuality = newQuality;
-
-            // Play chord if both degree and quality are selected
-            if (currentDegree !== null && currentQuality !== null) {
-                const chordName = getChordName(currentDegree, currentQuality);
-                const chordNotes = getChordNotes(currentDegree, currentQuality);
-
-                if (chordName !== lastChordName) {
-                    lastChordName = chordName;
-                    playChord(chordNotes);
-                    document.getElementById('chordName').textContent = chordName;
-                    document.getElementById('chordNotes').textContent = formatNotes(chordNotes);
+                if (currentDegree !== null && currentQuality !== null) {
+                    const cn = getChordName(currentDegree, currentQuality);
+                    const notes = getChordNotes(currentDegree, currentQuality);
+                    if (cn !== lastChordName) {
+                        lastChordName = cn;
+                        playChord(notes);
+                        document.getElementById('chordName').textContent = cn;
+                        document.getElementById('chordNotes').textContent = formatNotes(notes);
+                    }
+                } else if (currentDegree !== null || currentQuality !== null) {
+                    // Only one wheel selected — show partial
+                    if (currentDegree !== null && currentQuality === null) {
+                        const partial = `${getDegreeNote(currentDegree)}?`;
+                        document.getElementById('chordName').textContent = partial;
+                        document.getElementById('chordNotes').textContent = 'Select a quality →';
+                    } else if (currentQuality !== null) {
+                        document.getElementById('chordName').textContent = `?${QUALITIES[currentQuality].name}`;
+                        document.getElementById('chordNotes').textContent = 'Select a degree ←';
+                    }
+                    if (lastChordName !== '') {
+                        lastChordName = '';
+                        stopChord();
+                    }
+                } else {
+                    if (lastChordName !== '') {
+                        lastChordName = '';
+                        stopChord();
+                        document.getElementById('chordName').textContent = '—';
+                        document.getElementById('chordNotes').textContent = '';
+                    }
                 }
             } else {
-                if (lastChordName !== '') {
-                    lastChordName = '';
-                    stopChord();
-                    document.getElementById('chordName').textContent = '—';
-                    document.getElementById('chordNotes').textContent = '';
-                }
+                currentDegree = null;
+                currentQuality = null;
             }
 
-            renderWheels();
+            // Draw wheels
+            const degreeLabels = DEGREE_LABELS.map((l,i) => `${l}\n${getDegreeNote(i)}`);
+            const qualityLabels = QUALITIES.map(q => q.label);
+
+            drawWheel(degreeWheel, 7, DEGREE_COLORS, currentDegree, degreeLabels);
+            drawWheel(qualityWheel, QUALITIES.length, QUALITY_COLORS, currentQuality, qualityLabels);
+
+            // Update label positions
+            const dl = document.getElementById('degreeLabel');
+            const ql = document.getElementById('qualityLabel');
+            const dp = getWheelPixel(degreeWheel);
+            const qp = getWheelPixel(qualityWheel);
+            dl.style.top = (dp.cy - dp.outerR - 28) + 'px';
+            dl.style.left = dp.cx + 'px';
+            dl.style.transform = 'translateX(-50%)';
+            ql.style.top = (qp.cy - qp.outerR - 28) + 'px';
+            ql.style.left = qp.cx + 'px';
+            ql.style.transform = 'translateX(-50%)';
+
+            requestAnimationFrame(processFrame);
         }
 
-        // ========== GESTURE TOAST ==========
-        function showGestureToast(type, text) {
-            const container = document.getElementById('gestureFeedback');
-            const toast = document.createElement('div');
-            toast.className = `gesture-toast ${type}`;
-            toast.textContent = text;
-            container.appendChild(toast);
-            setTimeout(() => toast.remove(), 2000);
-        }
-
-        // ========== MAIN LOOP ==========
-        function gameLoop() {
-            checkWheelHit();
-            requestAnimationFrame(gameLoop);
+        // ========== TOAST ==========
+        function showToast(type, text) {
+            const c = document.getElementById('gestureFeedback');
+            const t = document.createElement('div');
+            t.className = `gesture-toast ${type}`;
+            t.textContent = text;
+            c.appendChild(t);
+            setTimeout(() => t.remove(), 2000);
         }
 
         // ========== START ==========
@@ -821,12 +655,8 @@
             initAudio();
             initHandTracking();
             document.getElementById('startOverlay').classList.add('hidden');
-            renderWheels();
-            gameLoop();
+            processFrame();
         });
-
-        // Initial render
-        renderWheels();
     })();
     </script>
 </body>
