@@ -9,13 +9,45 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --glass-highlight: rgba(255, 255, 255, 0.25);
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.5);
+            --danger: #ef4444;
+            --success: #22c55e;
+            --warning: #f59e0b;
+        }
+
         body {
             font-family: 'Space Grotesk', sans-serif;
             background: #000;
-            color: #e0e0e0;
+            color: #fff;
             width: 100vw;
             height: 100vh;
             overflow: hidden;
+        }
+
+        /* Animated gradient background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse at 30% 20%, rgba(99,102,241,0.15) 0%, transparent 50%),
+                        radial-gradient(ellipse at 70% 80%, rgba(236,72,153,0.12) 0%, transparent 50%),
+                        radial-gradient(ellipse at 50% 50%, rgba(139,92,246,0.08) 0%, transparent 60%);
+            animation: bgShift 20s ease-in-out infinite;
+            z-index: -2;
+        }
+
+        @keyframes bgShift {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(2%, 1%) rotate(1deg); }
+            66% { transform: translate(-1%, 2%) rotate(-1deg); }
         }
 
         #webcam {
@@ -36,82 +68,181 @@
             z-index: 2;
         }
 
+        #particles {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        .dim-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.15);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* ===== iOS LIQUID GLASS UI ===== */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--glass-highlight), transparent);
+        }
+
+        .glass-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.08) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        /* ===== CHORD DISPLAY ===== */
         .chord-display {
             position: fixed;
-            bottom: 100px;
+            bottom: 120px;
             left: 50%;
             transform: translateX(-50%);
             text-align: center;
             z-index: 10;
             pointer-events: none;
-            transition: transform 0.3s ease, opacity 0.3s ease;
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s;
         }
 
         .chord-display.active {
-            transform: translateX(-50%) scale(1.05);
+            transform: translateX(-50%) scale(1.08);
         }
 
         .chord-display .chord-name {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 4.5rem;
+            font-size: 5rem;
             font-weight: 700;
-            color: #fff;
-            text-shadow: 0 0 50px rgba(99,102,241,0.7), 0 0 100px rgba(139,92,246,0.4);
-            min-height: 5.5rem;
-            letter-spacing: -2px;
-            transition: all 0.2s ease;
+            background: linear-gradient(135deg, #fff 0%, #e0e7ff 50%, #c7d2fe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            min-height: 6rem;
+            letter-spacing: -3px;
+            text-shadow: 0 0 60px rgba(99,102,241,0.3);
+            filter: drop-shadow(0 10px 30px rgba(0,0,0,0.3));
         }
 
         .chord-display .chord-notes {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 1.1rem;
-            color: rgba(255,255,255,0.55);
-            margin-top: 6px;
+            font-size: 1.2rem;
+            color: rgba(255,255,255,0.5);
+            margin-top: 8px;
+            letter-spacing: 2px;
         }
 
         .chord-display .key-display {
-            margin-top: 12px;
-            font-size: 0.8rem;
+            margin-top: 14px;
+            font-size: 0.85rem;
             color: rgba(255,255,255,0.3);
             text-transform: uppercase;
-            letter-spacing: 3px;
+            letter-spacing: 4px;
         }
 
+        /* ===== WHEELS ===== */
         .wheel-label {
             position: fixed;
             z-index: 10;
-            font-size: 0.6rem;
+            font-size: 0.65rem;
             text-transform: uppercase;
-            letter-spacing: 3px;
-            color: rgba(255,255,255,0.25);
+            letter-spacing: 4px;
+            color: rgba(255,255,255,0.2);
             font-weight: 600;
             pointer-events: none;
             transition: color 0.3s;
         }
 
         .wheel-label.left {
-            top: 24px;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-180px);
+        }
+
+        .wheel-label.right {
+            top: 20px;
+            left: 50%;
+            transform: translateX(80px);
+        }
+
+        /* ===== HAND INDICATORS ===== */
+        .hand-indicator {
+            position: fixed;
+            z-index: 15;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: rgba(255,255,255,0.3);
+            pointer-events: none;
+            transition: all 0.3s;
+        }
+
+        .hand-indicator.left-hand {
+            top: 60px;
             left: 50%;
             transform: translateX(-200px);
         }
 
-        .wheel-label.right {
-            top: 24px;
+        .hand-indicator.right-hand {
+            top: 60px;
             left: 50%;
-            transform: translateX(60px);
+            transform: translateX(80px);
         }
 
-        /* === START OVERLAY === */
+        .hand-indicator.active {
+            color: #fff;
+            text-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .hand-indicator .dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            margin-right: 8px;
+            vertical-align: middle;
+            transition: background 0.3s;
+        }
+
+        .hand-indicator.active .dot {
+            background: var(--accent);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        /* ===== START OVERLAY ===== */
         .start-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.94);
+            background: rgba(0,0,0,0.9);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             z-index: 200;
-            transition: opacity 0.6s;
+            transition: opacity 0.5s;
         }
 
         .start-overlay.hidden {
@@ -120,34 +251,51 @@
         }
 
         .start-overlay h1 {
-            font-size: 3.5rem;
+            font-size: 4rem;
             font-weight: 700;
-            background: linear-gradient(135deg, #6366f1, #ec4899, #a855f7);
+            background: linear-gradient(135deg, #fff 0%, #a78bfa 50%, #6366f1 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            margin-bottom: 12px;
-            letter-spacing: -1px;
+            margin-bottom: 16px;
+            letter-spacing: -2px;
         }
 
         .start-overlay .subtitle {
-            font-size: 0.95rem;
+            font-size: 1rem;
             color: #666;
-            margin-bottom: 40px;
+            margin-bottom: 50px;
         }
 
         .start-btn {
-            padding: 18px 56px;
+            padding: 20px 60px;
             background: linear-gradient(135deg, #6366f1, #8b5cf6);
             color: #fff;
             border: none;
             border-radius: 16px;
             font-family: 'Space Grotesk', sans-serif;
-            font-size: 1.15rem;
+            font-size: 1.2rem;
             font-weight: 600;
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
-            box-shadow: 0 4px 30px rgba(99,102,241,0.3);
+            box-shadow: 0 4px 30px rgba(99,102,241,0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .start-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .start-btn:hover::before {
+            left: 100%;
         }
 
         .start-btn:hover {
@@ -164,34 +312,34 @@
         }
 
         .instruction-card {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 14px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
             padding: 20px 16px;
             text-align: center;
-            transition: background 0.2s;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
         }
 
         .instruction-card:hover {
-            background: rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
         }
 
-        .instruction-card .icon { font-size: 1.8rem; margin-bottom: 10px; }
-        .instruction-card .label { font-size: 0.75rem; color: #777; line-height: 1.5; }
+        .instruction-card .icon { font-size: 2rem; margin-bottom: 12px; }
+        .instruction-card .label { font-size: 0.8rem; color: #777; line-height: 1.5; }
 
-        /* === SETTINGS PANEL === */
+        /* ===== SETTINGS PANEL ===== */
         .settings-panel {
             position: fixed;
-            top: 0; right: -320px;
-            width: 320px;
+            top: 0; right: -340px;
+            width: 340px;
             height: 100vh;
-            background: rgba(10,10,10,0.95);
-            backdrop-filter: blur(20px);
             z-index: 150;
             transition: right 0.4s cubic-bezier(0.4,0,0.2,1);
             padding: 30px 24px;
             overflow-y: auto;
-            border-left: 1px solid rgba(255,255,255,0.06);
         }
 
         .settings-panel.open {
@@ -202,13 +350,14 @@
             position: fixed;
             top: 20px;
             right: 20px;
-            width: 44px;
-            height: 44px;
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 12px;
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            border: 1px solid var(--glass-border);
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
             color: #aaa;
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             cursor: pointer;
             z-index: 149;
             transition: all 0.2s;
@@ -218,21 +367,18 @@
         }
 
         .settings-toggle:hover {
-            background: rgba(255,255,255,0.1);
+            border-color: var(--glass-highlight);
             color: #fff;
+            transform: rotate(90deg);
         }
 
         .settings-panel h3 {
-            font-size: 1.1rem;
-            margin-bottom: 20px;
+            font-size: 1.2rem;
+            margin-bottom: 24px;
             color: #fff;
             display: flex;
             align-items: center;
-            gap: 10px;
-        }
-
-        .settings-panel h3::before {
-            content: '⚙';
+            gap: 12px;
         }
 
         .setting-group {
@@ -242,84 +388,80 @@
         .setting-group label {
             display: block;
             font-size: 0.75rem;
-            color: #666;
+            color: rgba(255,255,255,0.5);
             text-transform: uppercase;
             letter-spacing: 1.5px;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
 
         .setting-group select, .setting-group input[type="range"] {
             width: 100%;
             background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 10px;
-            padding: 10px 14px;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 12px;
+            padding: 12px 16px;
             color: #fff;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             outline: none;
             cursor: pointer;
+            transition: border-color 0.2s;
         }
 
         .setting-group select:hover, .setting-group select:focus {
-            border-color: rgba(99,102,241,0.5);
+            border-color: var(--accent);
         }
 
         .setting-group input[type="range"] {
             padding: 0;
-            height: 36px;
+            height: 32px;
             -webkit-appearance: none;
-            appearance: none;
             cursor: pointer;
         }
 
         .setting-group input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 16px;
-            height: 16px;
-            background: #6366f1;
+            width: 18px;
+            height: 18px;
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
             border-radius: 50%;
             cursor: pointer;
+            box-shadow: 0 2px 10px rgba(99,102,241,0.4);
         }
 
         .setting-group .value-display {
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.8rem;
-            color: #6366f1;
-            margin-top: 6px;
+            color: var(--accent);
+            margin-top: 8px;
             text-align: right;
         }
 
-        /* === RECORDER BAR === */
+        /* ===== RECORDER BAR ===== */
         .recorder-bar {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            height: 80px;
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(10px);
+            height: 90px;
             z-index: 50;
-            border-top: 1px solid rgba(255,255,255,0.06);
+            border-top: 1px solid rgba(255,255,255,0.08);
             display: flex;
             align-items: center;
-            padding: 0 20px;
+            padding: 0 24px;
             gap: 16px;
-            transition: transform 0.3s;
-        }
-
-        .recorder-bar.hidden {
-            transform: translateY(100%);
+            backdrop-filter: blur(20px);
+            background: rgba(0,0,0,0.4);
         }
 
         .rec-btn {
-            width: 48px;
-            height: 48px;
+            width: 52px;
+            height: 52px;
             border-radius: 50%;
-            border: 2px solid rgba(255,255,255,0.15);
-            background: transparent;
+            border: 2px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.05);
             color: #fff;
-            font-size: 1.1rem;
+            font-size: 1.3rem;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -328,64 +470,63 @@
         }
 
         .rec-btn:hover {
-            border-color: rgba(255,255,255,0.3);
-            background: rgba(255,255,255,0.05);
+            border-color: rgba(255,255,255,0.4);
+            background: rgba(255,255,255,0.1);
         }
 
         .rec-btn.recording {
-            border-color: #ef4444;
-            color: #ef4444;
+            border-color: var(--danger);
+            color: var(--danger);
+            background: rgba(239,68,68,0.1);
             animation: pulse 1s infinite;
         }
 
         @keyframes pulse {
             0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
-            50% { box-shadow: 0 0 0 10px rgba(239,68,68,0); }
+            50% { box-shadow: 0 0 0 12px rgba(239,68,68,0); }
         }
 
         .loop-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            border: 1px solid rgba(255,255,255,0.1);
-            background: transparent;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.05);
             color: rgba(255,255,255,0.4);
-            font-size: 0.9rem;
+            font-size: 1rem;
             cursor: pointer;
             transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .loop-btn.active {
-            border-color: #6366f1;
-            color: #6366f1;
-            background: rgba(99,102,241,0.1);
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(99,102,241,0.15);
         }
 
         .loop-btn:hover {
-            border-color: rgba(255,255,255,0.2);
+            border-color: rgba(255,255,255,0.3);
         }
 
         .history-track {
             flex: 1;
-            height: 48px;
+            height: 52px;
             background: rgba(255,255,255,0.03);
-            border-radius: 10px;
+            border-radius: 14px;
             overflow-x: auto;
             overflow-y: hidden;
             display: flex;
             align-items: center;
-            padding: 0 12px;
-            gap: 6px;
+            padding: 0 16px;
+            gap: 8px;
             scrollbar-width: thin;
-            scrollbar-color: rgba(255,255,255,0.1) transparent;
         }
 
         .history-track::-webkit-scrollbar {
             height: 4px;
-        }
-
-        .history-track::-webkit-scrollbar-track {
-            background: transparent;
         }
 
         .history-track::-webkit-scrollbar-thumb {
@@ -395,44 +536,49 @@
 
         .history-item {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.7rem;
-            padding: 6px 10px;
-            border-radius: 6px;
+            font-size: 0.75rem;
+            padding: 8px 14px;
+            border-radius: 10px;
             background: rgba(255,255,255,0.06);
-            color: rgba(255,255,255,0.5);
+            color: rgba(255,255,255,0.45);
             white-space: nowrap;
             cursor: pointer;
             transition: all 0.2s;
+            border: 1px solid transparent;
         }
 
         .history-item:hover {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.12);
             color: #fff;
         }
 
         .history-item.active-loop {
             background: rgba(99,102,241,0.2);
-            color: #6366f1;
+            color: #a78bfa;
+            border-color: rgba(99,102,241,0.3);
         }
 
         .clear-history-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.1);
-            background: transparent;
-            color: rgba(255,255,255,0.3);
-            font-size: 0.8rem;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.05);
+            color: rgba(255,255,255,0.35);
+            font-size: 0.85rem;
             cursor: pointer;
             transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .clear-history-btn:hover {
-            border-color: rgba(239,68,68,0.5);
-            color: #ef4444;
+            border-color: var(--danger);
+            color: var(--danger);
         }
 
-        /* === GESTURE TOAST === */
+        /* ===== GESTURE TOAST ===== */
         .gesture-feedback {
             position: fixed;
             top: 20px;
@@ -441,88 +587,96 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             z-index: 150;
         }
 
         .gesture-toast {
-            padding: 10px 22px;
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 10px;
-            font-size: 0.9rem;
-            color: #ccc;
-            animation: toastIn 0.3s ease-out;
-            font-weight: 600;
+            padding: 12px 26px;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 14px;
+            font-size: 0.95rem;
+            color: #ddd;
+            animation: toastIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .gesture-toast.up { border-color: #22c55e; color: #4ade80; }
-        .gesture-toast.down { border-color: #ef4444; color: #f87171; }
-        .gesture-toast.mute { border-color: #f59e0b; color: #fbbf24; }
-        .gesture-toast.arpeggio { border-color: #8b5cf6; color: #a78bfa; }
+        .gesture-toast.up { border-color: var(--success); color: #6ee7b7; }
+        .gesture-toast.down { border-color: var(--danger); color: #f87171; }
+        .gesture-toast.mute { border-color: var(--warning); color: #fbbf24; }
+        .gesture-toast.arpeggio { border-color: var(--accent); color: #a78bfa; }
 
         @keyframes toastIn {
-            0% { transform: translateY(-20px); opacity: 0; }
-            100% { transform: translateY(0); opacity: 1; }
+            0% { transform: translateY(-30px) scale(0.9); opacity: 0; }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
         }
 
-        .dim-overlay {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0,0,0,0.2);
-            z-index: 1;
-            pointer-events: none;
-        }
-
-        /* === PARTICLE CANVAS === */
-        #particles {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 3;
-            pointer-events: none;
-        }
-
-        /* === MUTE INDICATOR === */
+        /* ===== MUTE INDICATOR ===== */
         .mute-indicator {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 5rem;
-            color: rgba(239,68,68,0.8);
+            font-size: 6rem;
+            color: rgba(239,68,68,0.7);
             z-index: 120;
             opacity: 0;
             transition: opacity 0.3s;
             pointer-events: none;
+            filter: drop-shadow(0 0 40px rgba(239,68,68,0.3));
         }
 
         .mute-indicator.show {
             opacity: 1;
+            animation: mutePulse 0.5s ease-out;
         }
 
-        /* === ARPEGGIO INDICATOR === */
+        @keyframes mutePulse {
+            0% { transform: translate(-50%, -50%) scale(0.5); }
+            50% { transform: translate(-50%, -50%) scale(1.2); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+
+        /* ===== ARPEGGIO INDICATOR ===== */
         .arpeggio-indicator {
             position: fixed;
-            top: 80px;
-            right: 70px;
-            font-size: 0.7rem;
-            color: rgba(139,92,246,0.6);
+            top: 90px;
+            right: 80px;
+            font-size: 0.75rem;
+            color: rgba(139,92,246,0.5);
             z-index: 120;
             text-transform: uppercase;
             letter-spacing: 2px;
-            transition: color 0.3s;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .arpeggio-indicator.active {
             color: #a78bfa;
+            text-shadow: 0 0 20px rgba(167,139,250,0.4);
         }
 
-        /* === VOLUME INDICATOR === */
+        .arpeggio-indicator .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: arpBlink 1s infinite;
+        }
+
+        @keyframes arpBlink {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        /* ===== VOLUME INDICATOR ===== */
         .volume-indicator {
             position: fixed;
             top: 50%;
@@ -531,7 +685,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             z-index: 120;
             opacity: 0;
             transition: opacity 0.3s;
@@ -542,16 +696,80 @@
         }
 
         .volume-bar {
-            width: 4px;
-            background: linear-gradient(to top, #6366f1, #a78bfa);
-            border-radius: 2px;
+            width: 5px;
+            background: linear-gradient(to top, var(--accent), #a78bfa);
+            border-radius: 3px;
             transition: height 0.1s;
         }
 
         .volume-value {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.7rem;
-            color: #6366f1;
+            font-size: 0.75rem;
+            color: var(--accent);
+            margin-top: 8px;
+        }
+
+        /* ===== AUDIO VISUALIZER ===== */
+        .audio-viz {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: flex-end;
+            gap: 3px;
+            height: 40px;
+            z-index: 9;
+            opacity: 0.6;
+        }
+
+        .audio-viz-bar {
+            width: 4px;
+            background: linear-gradient(to top, var(--accent), #a78bfa);
+            border-radius: 2px;
+            transition: height 0.08s;
+        }
+
+        /* ===== START OVERLAY ENHANCED ===== */
+        .start-overlay {
+            background: radial-gradient(ellipse at center, rgba(20,20,30,0.95) 0%, rgba(0,0,0,0.98) 70%);
+        }
+
+        .start-overlay::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: 
+                radial-gradient(ellipse at 30% 20%, rgba(99,102,241,0.1) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 80%, rgba(236,72,153,0.08) 0%, transparent 50%);
+        }
+
+        .start-overlay h1 {
+            position: relative;
+            z-index: 1;
+        }
+
+        .start-overlay .subtitle {
+            position: relative;
+            z-index: 1;
+        }
+
+        .start-btn {
+            position: relative;
+            z-index: 1;
+        }
+
+        .start-instructions {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .chord-display .chord-name { font-size: 3rem; }
+            .wheel-label { font-size: 0.5rem; }
+            .settings-panel { width: 100%; right: -100%; }
+            .hand-indicator { display: none; }
         }
     </style>
 </head>
@@ -561,14 +779,18 @@
     <div class="dim-overlay"></div>
     <canvas id="overlay"></canvas>
 
+    <div class="audio-viz" id="audioViz"></div>
+
     <div class="mute-indicator" id="muteIndicator">🔇</div>
-    <div class="arpeggio-indicator" id="arpeggioIndicator">Arpeggio</div>
+    <div class="arpeggio-indicator" id="arpeggioIndicator"><span class="dot"></span>Arpeggio</div>
     <div class="volume-indicator" id="volumeIndicator"></div>
 
     <div class="wheel-label left" id="degreeLabel">Scale Degree</div>
     <div class="wheel-label right" id="qualityLabel">Chord Quality</div>
+    <div class="hand-indicator left-hand" id="leftHand"><span class="dot"></span>Left Hand</div>
+    <div class="hand-indicator right-hand" id="rightHand"><span class="dot"></span>Right Hand</div>
 
-    <div class="chord-display" id="chordDisplay">
+    <div class="chord-display glass-card" id="chordDisplay">
         <div class="chord-name" id="chordName">—</div>
         <div class="chord-notes" id="chordNotes"></div>
         <div class="key-display" id="keyDisplay">Key of C</div>
@@ -576,9 +798,9 @@
 
     <div class="gesture-feedback" id="gestureFeedback"></div>
 
-    <div class="settings-toggle" id="settingsToggle">⚙</div>
-    <div class="settings-panel" id="settingsPanel">
-        <h3>Settings</h3>
+    <button class="settings-toggle" id="settingsToggle" title="Settings">⚙</button>
+    <div class="settings-panel glass-card" id="settingsPanel">
+        <h3>⚙ Settings</h3>
         <div class="setting-group">
             <label>Sound Preset</label>
             <select id="soundPreset">
@@ -611,9 +833,9 @@
         </div>
     </div>
 
-    <div class="recorder-bar" id="recorderBar">
-        <button class="rec-btn" id="recBtn" title="Record">●</button>
-        <button class="loop-btn" id="loopBtn" title="Loop">↻</button>
+    <div class="recorder-bar glass-card">
+        <button class="rec-btn" id="recBtn" title="Record (R)">●</button>
+        <button class="loop-btn" id="loopBtn" title="Loop (L)">↻</button>
         <div class="history-track" id="historyTrack"></div>
         <button class="clear-history-btn" id="clearHistoryBtn" title="Clear">✕</button>
     </div>
@@ -624,20 +846,20 @@
         <button class="start-btn" id="startBtn">Start Camera</button>
         <div class="start-instructions">
             <div class="instruction-card">
-                <div class="icon">👆</div>
-                <div class="label">Point at left wheel for degree, right for quality</div>
+                <div class="icon">✋</div>
+                <div class="label">Left hand: Scale degree</div>
+            </div>
+            <div class="instruction-card">
+                <div class="icon">✋</div>
+                <div class="label">Right hand: Chord quality</div>
             </div>
             <div class="instruction-card">
                 <div class="icon">✊</div>
-                <div class="label">Fist = Mute | ✌️ = Arpeggio toggle</div>
+                <div class="label">Fist = Mute</div>
             </div>
             <div class="instruction-card">
-                <div class="icon">👍</div>
-                <div class="label">Thumbs up = Key up</div>
-            </div>
-            <div class="instruction-card">
-                <div class="icon">👎</div>
-                <div class="label">Thumbs down = Key down</div>
+                <div class="icon">✌️</div>
+                <div class="label">Peace = Arpeggio</div>
             </div>
         </div>
     </div>
@@ -702,12 +924,21 @@
         let arpeggioInterval = null;
         let arpeggioNotes = [];
         let arpeggioIndex = 0;
+        let analyser = null;
+        let vizData = new Uint8Array(32);
 
         function initAudio() {
             if (audioCtx) return;
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            createReverb();
             createMasterChain();
+            createReverb();
+            createVisualizer();
+        }
+
+        function resumeAudio() {
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
         }
 
         function createMasterChain() {
@@ -722,7 +953,6 @@
             reverbGain = audioCtx.createGain();
             dryGain = audioCtx.createGain();
             
-            // Create impulse response for reverb
             const rate = audioCtx.sampleRate;
             const length = rate * 2;
             const impulse = audioCtx.createBuffer(2, length, rate);
@@ -733,10 +963,16 @@
                 }
             }
             convolver.buffer = impulse;
-            
             convolver.connect(reverbGain);
             reverbGain.connect(masterGain);
             dryGain.connect(masterGain);
+        }
+
+        function createVisualizer() {
+            if (!audioCtx) return;
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 64;
+            masterGain.connect(analyser);
         }
 
         function noteToFreq(ni) {
@@ -760,6 +996,7 @@
                 stopArpeggio();
                 return;
             }
+            resumeAudio();
             stopChord();
             if (!audioCtx) return;
 
@@ -801,9 +1038,7 @@
                     const filter = audioCtx.createBiquadFilter();
                     filter.type = config.filter.type;
                     filter.frequency.value = config.filter.freq;
-                    if (config.filter.resonance) {
-                        filter.Q.value = config.filter.resonance;
-                    }
+                    if (config.filter.resonance) filter.Q.value = config.filter.resonance;
                     osc.connect(oG).connect(filter).connect(activeGain);
                 } else {
                     osc.connect(oG).connect(activeGain);
@@ -828,6 +1063,7 @@
         function startArpeggio() {
             stopArpeggio();
             if (arpeggioNotes.length === 0) return;
+            resumeAudio();
             const config = getOscConfig(settings.soundPreset);
             const intervalMs = 60000 / settings.bpm / 2;
             
@@ -915,6 +1151,21 @@
             }
         }
 
+        // ========== VISUALIZER ==========
+        function updateVisualizer() {
+            if (!analyser) return;
+            analyser.getByteFrequencyData(vizData);
+            const viz = document.getElementById('audioViz');
+            viz.innerHTML = '';
+            for (let i = 0; i < 32; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'audio-viz-bar';
+                const h = Math.max(4, (vizData[i] / 255) * 40);
+                bar.style.height = h + 'px';
+                viz.appendChild(bar);
+            }
+        }
+
         // ========== PARTICLES ==========
         const particleCanvas = document.getElementById('particles');
         const pCtx = particleCanvas.getContext('2d');
@@ -929,23 +1180,17 @@
 
         class Particle {
             constructor(x, y, color) {
-                this.x = x;
-                this.y = y;
-                this.color = color;
+                this.x = x; this.y = y; this.color = color;
                 this.size = Math.random() * 4 + 1;
                 const angle = Math.random() * Math.PI * 2;
                 const speed = Math.random() * 3 + 1;
                 this.vx = Math.cos(angle) * speed;
                 this.vy = Math.sin(angle) * speed;
-                this.life = 1;
-                this.decay = Math.random() * 0.02 + 0.015;
+                this.life = 1; this.decay = Math.random() * 0.02 + 0.015;
             }
             update() {
-                this.x += this.vx;
-                this.y += this.vy;
-                this.vy += 0.05;
-                this.life -= this.decay;
-                this.size *= 0.98;
+                this.x += this.vx; this.y += this.vy; this.vy += 0.05;
+                this.life -= this.decay; this.size *= 0.98;
             }
             draw() {
                 pCtx.globalAlpha = this.life;
@@ -957,18 +1202,13 @@
         }
 
         function spawnParticles(x, y, color, count) {
-            for (let i = 0; i < count; i++) {
-                particles.push(new Particle(x, y, color));
-            }
+            for (let i = 0; i < count; i++) particles.push(new Particle(x, y, color));
         }
 
         function updateParticles() {
             pCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
             particles = particles.filter(p => p.life > 0);
-            particles.forEach(p => {
-                p.update();
-                p.draw();
-            });
+            particles.forEach(p => { p.update(); p.draw(); });
             pCtx.globalAlpha = 1;
         }
 
@@ -976,18 +1216,13 @@
         let history = [];
         let isRecording = false;
         let recordedSequence = [];
-        let loopStart = 0;
-        let loopEnd = 0;
-        let isLooping = false;
-        let loopTimer = null;
+        let loopStart = 0, loopEnd = 0, isLooping = false, loopTimer = null;
 
         function addToHistory(chordName, notes) {
             history.push({ name: chordName, notes: notes, time: Date.now() });
             if (history.length > 50) history.shift();
             renderHistory();
-            if (isRecording) {
-                recordedSequence.push({ name: chordName, notes: notes, time: Date.now() });
-            }
+            if (isRecording) recordedSequence.push({ name: chordName, notes: notes, time: Date.now() });
         }
 
         function renderHistory() {
@@ -1018,11 +1253,9 @@
             if (isRecording) {
                 recordedSequence = [];
                 btn.classList.add('recording');
-                btn.title = 'Stop Recording';
                 showToast('rec', '● Recording...');
             } else {
                 btn.classList.remove('recording');
-                btn.title = 'Record';
                 showToast('rec', `Recorded ${recordedSequence.length} chords`);
             }
         }
@@ -1056,22 +1289,17 @@
                     setTimeout(stopChord, 600);
                 }
                 idx++;
-                const bpm = settings.bpm;
-                loopTimer = setTimeout(playNext, 60000 / bpm);
+                loopTimer = setTimeout(playNext, 60000 / settings.bpm);
             }
             playNext();
         }
 
         function stopLoopPlayback() {
-            if (loopTimer) {
-                clearTimeout(loopTimer);
-                loopTimer = null;
-            }
+            if (loopTimer) { clearTimeout(loopTimer); loopTimer = null; }
         }
 
         function clearHistory() {
-            history = [];
-            recordedSequence = [];
+            history = []; recordedSequence = [];
             renderHistory();
             stopLoopPlayback();
             isLooping = false;
@@ -1087,8 +1315,7 @@
             for (let i = 0; i < bars; i++) {
                 const bar = document.createElement('div');
                 bar.className = 'volume-bar';
-                const h = Math.max(4, Math.random() * settings.volume * 40);
-                bar.style.height = h + 'px';
+                bar.style.height = Math.max(4, Math.random() * settings.volume * 40) + 'px';
                 indicator.appendChild(bar);
             }
             const val = document.createElement('div');
@@ -1099,26 +1326,77 @@
             showVolumeIndicator._timer = setTimeout(() => indicator.classList.remove('show'), 1500);
         }
 
-        // ========== GESTURE DETECTION ==========
-        function detectThumbGesture(lm) {
+        // ========== HAND TRACKING ==========
+        let hands = null, camera = null;
+        let leftFingertip = null, rightFingertip = null;
+        let lastLandmarks = null;
+
+        function initHandTracking() {
+            const video = document.getElementById('webcam');
+            hands = new Hands({
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`
+            });
+            hands.setOptions({
+                maxNumHands: 2,
+                modelComplexity: 1,
+                minDetectionConfidence: 0.7,
+                minTrackingConfidence: 0.5,
+            });
+            hands.onResults(onResults);
+            camera = new Camera(video, {
+                onFrame: async () => { await hands.send({ image: video }); },
+                width: 1280, height: 720,
+            });
+            camera.start();
+        }
+
+        function onResults(results) {
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                lastLandmarks = results.multiHandLandmarks;
+                // First detected hand = left hand (controls degree wheel)
+                if (results.multiHandLandmarks[0]) {
+                    leftFingertip = { x: results.multiHandLandmarks[0][8].x, y: results.multiHandLandmarks[0][8].y };
+                    updateHandIndicator('left', true);
+                    detectLeftHandGesture(results.multiHandLandmarks[0]);
+                } else {
+                    leftFingertip = null;
+                    updateHandIndicator('left', false);
+                }
+                // Second detected hand = right hand (controls quality wheel)
+                if (results.multiHandLandmarks[1]) {
+                    rightFingertip = { x: results.multiHandLandmarks[1][8].x, y: results.multiHandLandmarks[1][8].y };
+                    updateHandIndicator('right', true);
+                    detectRightHandGesture(results.multiHandLandmarks[1]);
+                } else {
+                    rightFingertip = null;
+                    updateHandIndicator('right', false);
+                }
+            } else {
+                lastLandmarks = null;
+                leftFingertip = null;
+                rightFingertip = null;
+                updateHandIndicator('left', false);
+                updateHandIndicator('right', false);
+            }
+        }
+
+        function updateHandIndicator(side, active) {
+            const el = document.getElementById(side + 'Hand');
+            if (active) el.classList.add('active');
+            else el.classList.remove('active');
+        }
+
+        function detectLeftHandGesture(lm) {
             const now = Date.now();
             const wrist = lm[0], thumbTip = lm[4];
             const indexTip = lm[8], middleTip = lm[12], ringTip = lm[16], pinkyTip = lm[20];
             const indexMcp = lm[5], middleMcp = lm[9], ringMcp = lm[13], pinkyMcp = lm[17];
 
-            // Fist detection (all fingers curled)
+            // Fist = mute
             const curled = indexTip.y > indexMcp.y && middleTip.y > middleMcp.y && ringTip.y > ringMcp.y && pinkyTip.y > pinkyMcp.y;
             if (curled && now - (gestureState.lastFist || 0) > 1500) {
                 gestureState.lastFist = now;
                 toggleMute();
-                return;
-            }
-
-            // Peace sign (index + middle up, others down)
-            const peace = indexTip.y < indexMcp.y && middleTip.y < middleMcp.y && ringTip.y > ringMcp.y && pinkyTip.y > pinkyMcp.y;
-            if (peace && now - (gestureState.lastPeace || 0) > 1500) {
-                gestureState.lastPeace = now;
-                toggleArpeggio();
                 return;
             }
 
@@ -1133,31 +1411,23 @@
                 transposeDown();
                 showToast('down', `👎 Key down → ${getKey()}`);
             }
-
-            // Spread/pinch for volume (distance between thumb and index)
-            const thumbIndexDist = Math.sqrt(
-                Math.pow(thumbTip.x - indexTip.x, 2) + Math.pow(thumbTip.y - indexTip.y, 2)
-            );
-            if (gestureState.lastThumbIndexDist) {
-                const diff = thumbIndexDist - gestureState.lastThumbIndexDist;
-                if (Math.abs(diff) > 0.03) {
-                    if (diff > 0.03 && now - (gestureState.lastVolumeChange || 0) > 300) {
-                        settings.volume = Math.min(1, settings.volume + 0.1);
-                        updateVolumeUI();
-                        gestureState.lastVolumeChange = now;
-                        showVolumeIndicator();
-                    } else if (diff < -0.03 && now - (gestureState.lastVolumeChange || 0) > 300) {
-                        settings.volume = Math.max(0, settings.volume - 0.1);
-                        updateVolumeUI();
-                        gestureState.lastVolumeChange = now;
-                        showVolumeIndicator();
-                    }
-                }
-            }
-            gestureState.lastThumbIndexDist = thumbIndexDist;
         }
 
-        const gestureState = { lastThumbsUp: 0, lastThumbsDown: 0, lastFist: 0, lastPeace: 0, lastVolumeChange: 0, lastThumbIndexDist: null };
+        function detectRightHandGesture(lm) {
+            const now = Date.now();
+            const indexTip = lm[8], middleTip = lm[12], ringTip = lm[16], pinkyTip = lm[20];
+            const indexMcp = lm[5], middleMcp = lm[9], ringMcp = lm[13], pinkyMcp = lm[17];
+
+            // Peace sign = arpeggio toggle
+            const peace = indexTip.y < indexMcp.y && middleTip.y < middleMcp.y && ringTip.y > ringMcp.y && pinkyTip.y > pinkyMcp.y;
+            if (peace && now - (gestureState.lastPeace || 0) > 1500) {
+                gestureState.lastPeace = now;
+                toggleArpeggio();
+                return;
+            }
+        }
+
+        const gestureState = { lastThumbsUp: 0, lastThumbsDown: 0, lastFist: 0, lastPeace: 0, lastVolumeChange: 0 };
 
         // ========== WHEEL GEOMETRY ==========
         const degreeWheel = { cx: 0.22, cy: 0.42, outerR: 0.16, innerR: 0.07 };
@@ -1270,75 +1540,33 @@
 
             ctx.strokeStyle = 'rgba(139,92,246,0.25)';
             ctx.lineWidth = 2;
-            connections.forEach(([a,b]) => {
-                const ax = (1 - landmarks[a].x) * overlayCanvas.width;
-                const ay = landmarks[a].y * overlayCanvas.height;
-                const bx = (1 - landmarks[b].x) * overlayCanvas.width;
-                const by = landmarks[b].y * overlayCanvas.height;
-                ctx.beginPath();
-                ctx.moveTo(ax, ay);
-                ctx.lineTo(bx, by);
-                ctx.stroke();
+            landmarks.forEach(lm => {
+                connections.forEach(([a,b]) => {
+                    const ax = (1 - lm[a].x) * overlayCanvas.width;
+                    const ay = lm[a].y * overlayCanvas.height;
+                    const bx = (1 - lm[b].x) * overlayCanvas.width;
+                    const by = lm[b].y * overlayCanvas.height;
+                    ctx.beginPath();
+                    ctx.moveTo(ax, ay);
+                    ctx.lineTo(bx, by);
+                    ctx.stroke();
+                });
             });
 
-            landmarks.forEach((lm, i) => {
-                const x = (1 - lm.x) * overlayCanvas.width;
-                const y = lm.y * overlayCanvas.height;
-                ctx.beginPath();
-                ctx.arc(x, y, i === 8 ? 6 : 3, 0, Math.PI * 2);
-                ctx.fillStyle = i === 8 ? '#6366f1' : 'rgba(139,92,246,0.4)';
-                ctx.fill();
+            landmarks.forEach(lm => {
+                lm.forEach((pt, i) => {
+                    const x = (1 - pt.x) * overlayCanvas.width;
+                    const y = pt.y * overlayCanvas.height;
+                    ctx.beginPath();
+                    ctx.arc(x, y, i === 8 ? 6 : 3, 0, Math.PI * 2);
+                    ctx.fillStyle = i === 8 ? '#6366f1' : 'rgba(139,92,246,0.4)';
+                    ctx.fill();
+                });
             });
-        }
-
-        // ========== HAND TRACKING ==========
-        let hands = null;
-        let camera = null;
-        let fingertipPos = null;
-        let lastLandmarks = null;
-
-        function initHandTracking() {
-            const video = document.getElementById('webcam');
-
-            hands = new Hands({
-                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`
-            });
-
-            hands.setOptions({
-                maxNumHands: 1,
-                modelComplexity: 1,
-                minDetectionConfidence: 0.7,
-                minTrackingConfidence: 0.5,
-            });
-
-            hands.onResults((results) => {
-                if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                    const lm = results.multiHandLandmarks[0];
-                    lastLandmarks = lm;
-                    fingertipPos = { x: lm[8].x, y: lm[8].y };
-                    detectThumbGesture(lm);
-                } else {
-                    lastLandmarks = null;
-                    fingertipPos = null;
-                }
-            });
-
-            camera = new Camera(video, {
-                onFrame: async () => { await hands.send({ image: video }); },
-                width: 1280,
-                height: 720,
-            });
-
-            camera.start();
         }
 
         // ========== HIT DETECTION ==========
-        let hoveredDegree = null;
-        let hoveredQuality = null;
-        let lockedDegree = null;
-        let lockedQuality = null;
-        let fingerOnDegreeWheel = false;
-        let fingerOnQualityWheel = false;
+        let lockedDegree = null, lockedQuality = null;
 
         function hitTestWheel(fx, fy, w, segments) {
             const video = document.getElementById('webcam');
@@ -1349,18 +1577,14 @@
 
             const videoAspect = vw / vh;
             const screenAspect = sw / sh;
-            let scaleX, scaleY, offsetX, offsetY;
+            let scaleX, scaleY;
 
             if (screenAspect > videoAspect) {
                 scaleX = 1.0;
                 scaleY = screenAspect / videoAspect;
-                offsetX = 0;
-                offsetY = (1 - scaleY) / 2;
             } else {
                 scaleX = videoAspect / screenAspect;
                 scaleY = 1.0;
-                offsetX = (1 - scaleX) / 2;
-                offsetY = 0;
             }
 
             const sx = (1 - fx) * sw;
@@ -1392,23 +1616,18 @@
                 drawHandSkeleton(lastLandmarks);
             }
 
-            fingerOnDegreeWheel = false;
-            fingerOnQualityWheel = false;
+            // Left hand -> degree wheel
+            if (leftFingertip) {
+                const dHit = hitTestWheel(leftFingertip.x, leftFingertip.y, degreeWheel, 7);
+                if (dHit !== null) lockedDegree = dHit;
+                drawFingertip(leftFingertip.x, leftFingertip.y);
+            }
 
-            if (fingertipPos) {
-                const dHit = hitTestWheel(fingertipPos.x, fingertipPos.y, degreeWheel, 7);
-                const qHit = hitTestWheel(fingertipPos.x, fingertipPos.y, qualityWheel, QUALITIES.length);
-
-                if (dHit !== null) {
-                    lockedDegree = dHit;
-                    fingerOnDegreeWheel = true;
-                }
-                if (qHit !== null) {
-                    lockedQuality = qHit;
-                    fingerOnQualityWheel = true;
-                }
-
-                drawFingertip(fingertipPos.x, fingertipPos.y);
+            // Right hand -> quality wheel
+            if (rightFingertip) {
+                const qHit = hitTestWheel(rightFingertip.x, rightFingertip.y, qualityWheel, QUALITIES.length);
+                if (qHit !== null) lockedQuality = qHit;
+                drawFingertip(rightFingertip.x, rightFingertip.y);
             }
 
             currentDegree = lockedDegree;
@@ -1430,11 +1649,11 @@
                 }
             } else if (currentDegree !== null && currentQuality === null) {
                 document.getElementById('chordName').textContent = `${getDegreeNote(currentDegree)}?`;
-                document.getElementById('chordNotes').textContent = 'Select a quality →';
+                document.getElementById('chordNotes').textContent = 'Select quality →';
                 if (lastChordName !== '') { lastChordName = ''; stopChord(); }
             } else if (currentQuality !== null) {
                 document.getElementById('chordName').textContent = `?${QUALITIES[currentQuality].name}`;
-                document.getElementById('chordNotes').textContent = 'Select a degree ←';
+                document.getElementById('chordNotes').textContent = 'Select degree ←';
                 if (lastChordName !== '') { lastChordName = ''; stopChord(); }
             } else {
                 if (lastChordName !== '') {
@@ -1462,6 +1681,7 @@
             ql.style.left = qp.cx + 'px';
             ql.style.transform = 'translateX(-50%)';
 
+            updateVisualizer();
             updateParticles();
             requestAnimationFrame(processFrame);
         }
