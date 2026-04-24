@@ -232,11 +232,11 @@
         <div class="start-instructions">
             <div class="instruction-card">
                 <div class="icon">👆</div>
-                <div class="label">Point at left wheel for scale degree (I–VII)</div>
+                <div class="label">Point at left wheel for degree, then right wheel for quality</div>
             </div>
             <div class="instruction-card">
-                <div class="icon">👉</div>
-                <div class="label">Point at right wheel for chord quality</div>
+                <div class="icon">✋</div>
+                <div class="label">Selection persists — pick degree then quality separately</div>
             </div>
             <div class="instruction-card">
                 <div class="icon">👍</div>
@@ -503,14 +503,7 @@
                 } else {
                     lastLandmarks = null;
                     fingertipPos = null;
-                    currentDegree = null;
-                    currentQuality = null;
-                    if (lastChordName !== '') {
-                        lastChordName = '';
-                        stopChord();
-                        document.getElementById('chordName').textContent = '—';
-                        document.getElementById('chordNotes').textContent = '';
-                    }
+                    // Don't reset locked selections when hand disappears
                 }
             });
 
@@ -546,17 +539,58 @@
         }
 
         // ========== HIT DETECTION (normalized coords) ==========
+        // Selection persists: once you pick a degree, it stays until you pick a different one.
+        // Quality same. Finger off both wheels = no reset.
+        let hoveredDegree = null;
+        let hoveredQuality = null;
+        let lockedDegree = null;   // persists after finger leaves
+        let lockedQuality = null;  // persists after finger leaves
+        let fingerOnDegreeWheel = false;
+        let fingerOnQualityWheel = false;
+
         function hitTestWheel(fx, fy, w, segments) {
-            // Convert finger pos to screen (mirrored)
-            const sx = (1 - fx) * window.innerWidth;
-            const sy = fy * window.innerHeight;
+            // MediaPipe gives normalized 0-1 coords relative to video frame.
+            // We need to map these to screen coords accounting for object-fit:cover.
+            const video = document.getElementById('webcam');
+            const vw = video.videoWidth || 1280;
+            const vh = video.videoHeight || 720;
+            const sw = window.innerWidth;
+            const sh = window.innerHeight;
+
+            // object-fit:cover — video fills screen, centered, cropped
+            const videoAspect = vw / vh;
+            const screenAspect = sw / sh;
+            let scaleX, scaleY, offsetX, offsetY;
+
+            if (screenAspect > videoAspect) {
+                // Screen is wider — video fills width, crops top/bottom
+                scaleX = 1.0;
+                scaleY = screenAspect / videoAspect;
+                offsetX = 0;
+                offsetY = (1 - scaleY) / 2;
+            } else {
+                // Screen is taller — video fills height, crops left/right
+                scaleX = videoAspect / screenAspect;
+                scaleY = 1.0;
+                offsetX = (1 - scaleX) / 2;
+                offsetY = 0;
+            }
+
+            // Map MediaPipe (0-1) to screen position, accounting for crop + mirror
+            const sx = (1 - fx) * sw;  // mirror X
+            const sy = fy * sh;
+
             const p = getWheelPixel(w);
 
             const dx = sx - p.cx;
             const dy = sy - p.cy;
             const dist = Math.sqrt(dx*dx + dy*dy);
 
-            if (dist >= p.innerR && dist <= p.outerR) {
+            // Generous hit area: innerR to outerR + some padding
+            const hitInner = p.innerR * 0.7;
+            const hitOuter = p.outerR * 1.15;
+
+            if (dist >= hitInner && dist <= hitOuter) {
                 let angle = Math.atan2(dy, dx) + Math.PI / 2;
                 if (angle < 0) angle += Math.PI * 2;
                 let idx = Math.floor(angle / (Math.PI * 2 / segments));
@@ -575,47 +609,54 @@
                 drawHandSkeleton(lastLandmarks);
             }
 
-            // Hit test wheels
+            // Hit test wheels with persistent selection
+            fingerOnDegreeWheel = false;
+            fingerOnQualityWheel = false;
+
             if (fingertipPos) {
-                currentDegree = hitTestWheel(fingertipPos.x, fingertipPos.y, degreeWheel, 7);
-                currentQuality = hitTestWheel(fingertipPos.x, fingertipPos.y, qualityWheel, QUALITIES.length);
+                const dHit = hitTestWheel(fingertipPos.x, fingertipPos.y, degreeWheel, 7);
+                const qHit = hitTestWheel(fingertipPos.x, fingertipPos.y, qualityWheel, QUALITIES.length);
+
+                if (dHit !== null) {
+                    lockedDegree = dHit;
+                    fingerOnDegreeWheel = true;
+                }
+                if (qHit !== null) {
+                    lockedQuality = qHit;
+                    fingerOnQualityWheel = true;
+                }
 
                 drawFingertip(fingertipPos.x, fingertipPos.y);
+            }
 
-                if (currentDegree !== null && currentQuality !== null) {
-                    const cn = getChordName(currentDegree, currentQuality);
-                    const notes = getChordNotes(currentDegree, currentQuality);
-                    if (cn !== lastChordName) {
-                        lastChordName = cn;
-                        playChord(notes);
-                        document.getElementById('chordName').textContent = cn;
-                        document.getElementById('chordNotes').textContent = formatNotes(notes);
-                    }
-                } else if (currentDegree !== null || currentQuality !== null) {
-                    // Only one wheel selected — show partial
-                    if (currentDegree !== null && currentQuality === null) {
-                        const partial = `${getDegreeNote(currentDegree)}?`;
-                        document.getElementById('chordName').textContent = partial;
-                        document.getElementById('chordNotes').textContent = 'Select a quality →';
-                    } else if (currentQuality !== null) {
-                        document.getElementById('chordName').textContent = `?${QUALITIES[currentQuality].name}`;
-                        document.getElementById('chordNotes').textContent = 'Select a degree ←';
-                    }
-                    if (lastChordName !== '') {
-                        lastChordName = '';
-                        stopChord();
-                    }
-                } else {
-                    if (lastChordName !== '') {
-                        lastChordName = '';
-                        stopChord();
-                        document.getElementById('chordName').textContent = '—';
-                        document.getElementById('chordNotes').textContent = '';
-                    }
+            // Use locked values for display
+            currentDegree = lockedDegree;
+            currentQuality = lockedQuality;
+
+            if (currentDegree !== null && currentQuality !== null) {
+                const cn = getChordName(currentDegree, currentQuality);
+                const notes = getChordNotes(currentDegree, currentQuality);
+                if (cn !== lastChordName) {
+                    lastChordName = cn;
+                    playChord(notes);
+                    document.getElementById('chordName').textContent = cn;
+                    document.getElementById('chordNotes').textContent = formatNotes(notes);
                 }
+            } else if (currentDegree !== null && currentQuality === null) {
+                document.getElementById('chordName').textContent = `${getDegreeNote(currentDegree)}?`;
+                document.getElementById('chordNotes').textContent = 'Select a quality →';
+                if (lastChordName !== '') { lastChordName = ''; stopChord(); }
+            } else if (currentQuality !== null) {
+                document.getElementById('chordName').textContent = `?${QUALITIES[currentQuality].name}`;
+                document.getElementById('chordNotes').textContent = 'Select a degree ←';
+                if (lastChordName !== '') { lastChordName = ''; stopChord(); }
             } else {
-                currentDegree = null;
-                currentQuality = null;
+                if (lastChordName !== '') {
+                    lastChordName = '';
+                    stopChord();
+                    document.getElementById('chordName').textContent = '—';
+                    document.getElementById('chordNotes').textContent = '';
+                }
             }
 
             // Draw wheels
