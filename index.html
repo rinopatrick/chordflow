@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChordFlow — Hand-Tracking Chord Controller</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .app {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            height: 100vh;
+            gap: 0;
+        }
+
+        /* === LEFT PANEL: Degree Wheel === */
+        .wheel-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            border-right: 1px solid #1a1a2e;
+        }
+
+        .wheel-panel h3 {
+            position: absolute;
+            top: 20px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        .wheel-canvas {
+            cursor: default;
+        }
+
+        /* === CENTER: Webcam + Info === */
+        .center-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: #08080d;
+        }
+
+        .webcam-container {
+            position: relative;
+            width: 480px;
+            height: 360px;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 2px solid #1a1a2e;
+        }
+
+        #webcam {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+
+        #handCanvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            transform: scaleX(-1);
+        }
+
+        .active-chord {
+            margin-top: 24px;
+            text-align: center;
+        }
+
+        .active-chord .key-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #555;
+            margin-bottom: 4px;
+        }
+
+        .active-chord .chord-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 3rem;
+            font-weight: 700;
+            color: #fff;
+            text-shadow: 0 0 30px rgba(99, 102, 241, 0.5);
+            min-height: 4rem;
+        }
+
+        .active-chord .notes-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .transpose-info {
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .transpose-info .key-display {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            color: #888;
+            padding: 6px 16px;
+            background: #111118;
+            border-radius: 8px;
+            border: 1px solid #222;
+        }
+
+        .transpose-info .gesture-hint {
+            font-size: 0.7rem;
+            color: #444;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        /* === RIGHT PANEL: Quality Wheel === */
+        .quality-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            border-left: 1px solid #1a1a2e;
+        }
+
+        .quality-panel h3 {
+            position: absolute;
+            top: 20px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        /* === TOP BAR === */
+        .top-bar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #6366f1, #8b5cf6, #ec4899);
+            z-index: 100;
+        }
+
+        /* === START OVERLAY === */
+        .start-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(10, 10, 15, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            transition: opacity 0.5s;
+        }
+
+        .start-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .start-overlay h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #6366f1, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .start-overlay p {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.9rem;
+        }
+
+        .start-btn {
+            padding: 14px 40px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(99, 102, 241, 0.3);
+        }
+
+        .start-instructions {
+            margin-top: 30px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            max-width: 500px;
+        }
+
+        .instruction-card {
+            background: #111118;
+            border: 1px solid #1a1a2e;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .instruction-card .icon {
+            font-size: 1.5rem;
+            margin-bottom: 6px;
+        }
+
+        .instruction-card .label {
+            font-size: 0.75rem;
+            color: #888;
+            line-height: 1.4;
+        }
+
+        /* === FOOTER === */
+        .footer {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            text-align: center;
+            padding: 8px;
+            font-size: 0.65rem;
+            color: #333;
+            z-index: 50;
+        }
+
+        /* === RIPPLE EFFECT === */
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(99,102,241,0.4), transparent);
+            pointer-events: none;
+            animation: rippleAnim 0.6s ease-out forwards;
+        }
+
+        @keyframes rippleAnim {
+            0% { transform: scale(0.5); opacity: 1; }
+            100% { transform: scale(2.5); opacity: 0; }
+        }
+
+        /* === GESTURE FEEDBACK === */
+        .gesture-feedback {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 150;
+        }
+
+        .gesture-toast {
+            padding: 8px 16px;
+            background: #111118;
+            border: 1px solid #222;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            color: #aaa;
+            animation: slideIn 0.3s ease-out;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .gesture-toast.transpose-up { border-color: #22c55e; color: #4ade80; }
+        .gesture-toast.transpose-down { border-color: #ef4444; color: #f87171; }
+
+        @keyframes slideIn {
+            0% { transform: translateX(100px); opacity: 0; }
+            100% { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar"></div>
+
+    <div class="start-overlay" id="startOverlay">
+        <h1>ChordFlow</h1>
+        <p>Hand-tracking chord controller</p>
+        <button class="start-btn" id="startBtn">Start Camera</button>
+        <div class="start-instructions">
+            <div class="instruction-card">
+                <div class="icon">👆</div>
+                <div class="label">Point finger at left wheel to pick degree (1-7)</div>
+            </div>
+            <div class="instruction-card">
+                <div class="icon">👉</div>
+                <div class="label">Point finger at right wheel to pick quality (maj, min, dim...)</div>
+            </div>
+            <div class="instruction-card">
+                <div class="icon">👍</div>
+                <div class="label">Thumbs up to transpose key up</div>
+            </div>
+            <div class="instruction-card">
+                <div class="icon">👎</div>
+                <div class="label">Thumbs down to transpose key down</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="gesture-feedback" id="gestureFeedback"></div>
+
+    <div class="app">
+        <div class="wheel-panel">
+            <h3>Scale Degree</h3>
+            <canvas id="degreeWheel" class="wheel-canvas" width="380" height="380"></canvas>
+        </div>
+
+        <div class="center-panel">
+            <div class="webcam-container">
+                <video id="webcam" autoplay playsinline></video>
+                <canvas id="handCanvas"></canvas>
+            </div>
+            <div class="active-chord">
+                <div class="key-label">Active Chord</div>
+                <div class="chord-name" id="chordName">—</div>
+                <div class="notes-label" id="chordNotes"></div>
+            </div>
+            <div class="transpose-info">
+                <div class="key-display" id="keyDisplay">Key: C</div>
+                <div class="gesture-hint">👍 Transpose Up&nbsp;&nbsp;👎 Transpose Down</div>
+            </div>
+        </div>
+
+        <div class="quality-panel">
+            <h3>Chord Quality</h3>
+            <canvas id="qualityWheel" class="wheel-canvas" width="380" height="380"></canvas>
+        </div>
+    </div>
+
+    <div class="footer">ChordFlow — Hand-tracking chord controller</div>
+
+    <!-- MediaPipe -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
+
+    <script>
+    (() => {
+        // ========== CHORD THEORY ENGINE ==========
+        const NOTES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+        const DEGREE_LABELS = ['I','II','III','IV','V','VI','VII'];
+        const QUALITIES = [
+            { name: 'maj',  label: 'Major',     intervals: [0,4,7] },
+            { name: 'min',  label: 'Minor',     intervals: [0,3,7] },
+            { name: 'dim',  label: 'Dim',       intervals: [0,3,6] },
+            { name: 'aug',  label: 'Aug',       intervals: [0,4,8] },
+            { name: '7',    label: '7th',       intervals: [0,4,7,10] },
+            { name: 'maj7', label: 'Maj7',      intervals: [0,4,7,11] },
+            { name: 'min7', label: 'Min7',      intervals: [0,3,7,10] },
+            { name: 'sus2', label: 'Sus2',      intervals: [0,2,7] },
+            { name: 'sus4', label: 'Sus4',      intervals: [0,5,7] },
+            { name: 'add9', label: 'Add9',      intervals: [0,4,7,14] },
+        ];
+
+        // Major scale intervals (in semitones)
+        const MAJOR_SCALE = [0, 2, 4, 5, 7, 9, 11];
+
+        let currentKeyIndex = 0; // 0 = C
+        let currentDegree = null; // 0-6
+        let currentQuality = null; // 0-9
+        let lastChordName = '';
+
+        function getKey() { return NOTES[currentKeyIndex]; }
+
+        function getDegreeNote(degree) {
+            const rootSemitone = MAJOR_SCALE[degree];
+            return NOTES[(currentKeyIndex + rootSemitone) % 12];
+        }
+
+        function getChordNotes(degree, qualityIdx) {
+            const rootSemitone = MAJOR_SCALE[degree];
+            const rootNote = (currentKeyIndex + rootSemitone) % 12;
+            const quality = QUALITIES[qualityIdx];
+            return quality.intervals.map(i => (rootNote + i) % 12);
+        }
+
+        function getChordName(degree, qualityIdx) {
+            const root = getDegreeNote(degree);
+            const quality = QUALITIES[qualityIdx];
+            return `${root}${quality.name}`;
+        }
+
+        function formatNotes(noteIndices) {
+            return noteIndices.map(i => NOTES[i % 12]).join(' - ');
+        }
+
+        function transposeUp() {
+            currentKeyIndex = (currentKeyIndex + 1) % 12;
+            updateKeyDisplay();
+        }
+
+        function transposeDown() {
+            currentKeyIndex = (currentKeyIndex + 11) % 12;
+            updateKeyDisplay();
+        }
+
+        function updateKeyDisplay() {
+            document.getElementById('keyDisplay').textContent = `Key: ${getKey()}`;
+        }
+
+        // ========== AUDIO ENGINE ==========
+        let audioCtx = null;
+        let activeOscillators = [];
+        let activeGain = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function noteToFreq(noteIndex) {
+            // A4 = 440Hz, A = noteIndex 9
+            const midiNote = noteIndex + 60; // Start from C4 (MIDI 60)
+            return 440 * Math.pow(2, (midiNote - 69) / 12);
+        }
+
+        function playChord(noteIndices) {
+            stopChord();
+            if (!audioCtx) return;
+
+            activeGain = audioCtx.createGain();
+            activeGain.gain.setValueAtTime(0, audioCtx.currentTime);
+            activeGain.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 0.05);
+            activeGain.connect(audioCtx.destination);
+
+            noteIndices.forEach(noteIdx => {
+                // Main oscillator (triangle for guitar-like sound)
+                const osc = audioCtx.createOscillator();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(noteToFreq(noteIdx), audioCtx.currentTime);
+
+                // Sub oscillator for body
+                const sub = audioCtx.createOscillator();
+                sub.type = 'sine';
+                sub.frequency.setValueAtTime(noteToFreq(noteIdx), audioCtx.currentTime);
+
+                const oscGain = audioCtx.createGain();
+                oscGain.gain.setValueAtTime(0.6, audioCtx.currentTime);
+                const subGain = audioCtx.createGain();
+                subGain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+
+                osc.connect(oscGain).connect(activeGain);
+                sub.connect(subGain).connect(activeGain);
+
+                osc.start();
+                sub.start();
+                activeOscillators.push(osc, sub);
+            });
+        }
+
+        function stopChord() {
+            if (activeGain) {
+                activeGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+                activeGain = null;
+            }
+            activeOscillators.forEach(osc => {
+                try { osc.stop(audioCtx.currentTime + 0.15); } catch(e) {}
+            });
+            activeOscillators = [];
+        }
+
+        // ========== WHEEL RENDERING ==========
+        const DEGREE_COLORS = [
+            '#6366f1','#8b5cf6','#a855f7','#d946ef',
+            '#ec4899','#f43f5e','#f97316'
+        ];
+        const QUALITY_COLORS = [
+            '#3b82f6','#22c55e','#eab308','#f97316',
+            '#ef4444','#8b5cf6','#06b6d4','#84cc16','#f43f5e','#6366f1'
+        ];
+
+        function drawWheel(canvasId, segments, colors, activeIdx, labels) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            const outerR = 170;
+            const innerR = 80;
+            const sliceAngle = (2 * Math.PI) / segments;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw slices
+            for (let i = 0; i < segments; i++) {
+                const startAngle = -Math.PI / 2 + i * sliceAngle;
+                const endAngle = startAngle + sliceAngle;
+                const isActive = i === activeIdx;
+
+                // Slice fill
+                ctx.beginPath();
+                ctx.arc(cx, cy, outerR, startAngle, endAngle);
+                ctx.arc(cx, cy, innerR, endAngle, startAngle, true);
+                ctx.closePath();
+
+                const alpha = isActive ? 0.9 : 0.25;
+                ctx.fillStyle = hexToRGBA(colors[i % colors.length], alpha);
+                ctx.fill();
+
+                // Border
+                ctx.strokeStyle = isActive ? colors[i % colors.length] : '#1a1a2e';
+                ctx.lineWidth = isActive ? 2 : 1;
+                ctx.stroke();
+
+                // Glow for active
+                if (isActive) {
+                    ctx.shadowColor = colors[i % colors.length];
+                    ctx.shadowBlur = 20;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+
+                // Label
+                const labelAngle = startAngle + sliceAngle / 2;
+                const labelR = (outerR + innerR) / 2;
+                const lx = cx + Math.cos(labelAngle) * labelR;
+                const ly = cy + Math.sin(labelAngle) * labelR;
+
+                ctx.save();
+                ctx.translate(lx, ly);
+                ctx.fillStyle = isActive ? '#fff' : '#666';
+                ctx.font = isActive ? 'bold 16px "JetBrains Mono"' : '13px "JetBrains Mono"';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(labels[i], 0, 0);
+                ctx.restore();
+            }
+
+            // Center circle
+            ctx.beginPath();
+            ctx.arc(cx, cy, innerR - 4, 0, Math.PI * 2);
+            ctx.fillStyle = '#0a0a0f';
+            ctx.fill();
+            ctx.strokeStyle = '#1a1a2e';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+
+        function hexToRGBA(hex, alpha) {
+            const r = parseInt(hex.slice(1,3), 16);
+            const g = parseInt(hex.slice(3,5), 16);
+            const b = parseInt(hex.slice(5,7), 16);
+            return `rgba(${r},${g},${b},${alpha})`;
+        }
+
+        function renderWheels() {
+            const degreeLabels = DEGREE_LABELS.map((label, i) => `${label}\n${getDegreeNote(i)}`);
+            drawWheel('degreeWheel', 7, DEGREE_COLORS, currentDegree, degreeLabels);
+
+            const qualityLabels = QUALITIES.map(q => q.label);
+            drawWheel('qualityWheel', QUALITIES.length, QUALITY_COLORS, currentQuality, qualityLabels);
+        }
+
+        // ========== HAND TRACKING ==========
+        let hands = null;
+        let camera = null;
+        let fingertipPos = null; // {x, y} normalized 0-1
+        let thumbPos = null;
+        let gestureState = { lastThumbsUp: 0, lastThumbsDown: 0 };
+
+        function initHandTracking() {
+            const video = document.getElementById('webcam');
+            const handCanvas = document.getElementById('handCanvas');
+            const handCtx = handCanvas.getContext('2d');
+
+            handCanvas.width = 480;
+            handCanvas.height = 360;
+
+            hands = new Hands({
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`
+            });
+
+            hands.setOptions({
+                maxNumHands: 1,
+                modelComplexity: 1,
+                minDetectionConfidence: 0.7,
+                minTrackingConfidence: 0.5,
+            });
+
+            hands.onResults((results) => {
+                handCtx.clearRect(0, 0, handCanvas.width, handCanvas.height);
+
+                if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                    const landmarks = results.multiHandLandmarks[0];
+                    drawHand(handCtx, landmarks);
+
+                    // Index fingertip = landmark 8
+                    const indexTip = landmarks[8];
+                    fingertipPos = { x: indexTip.x, y: indexTip.y };
+
+                    // Thumb tip = landmark 4
+                    thumbPos = { x: landmarks[4].x, y: landmarks[4].y };
+
+                    // Detect thumbs up/down gesture
+                    detectThumbGesture(landmarks);
+                } else {
+                    fingertipPos = null;
+                    thumbPos = null;
+                    currentDegree = null;
+                    currentQuality = null;
+                    stopChord();
+                    document.getElementById('chordName').textContent = '—';
+                    document.getElementById('chordNotes').textContent = '';
+                    renderWheels();
+                }
+            });
+
+            camera = new Camera(video, {
+                onFrame: async () => {
+                    await hands.send({ image: video });
+                },
+                width: 480,
+                height: 360,
+            });
+
+            camera.start();
+        }
+
+        function drawHand(ctx, landmarks) {
+            // Draw connections
+            const connections = [
+                [0,1],[1,2],[2,3],[3,4],
+                [0,5],[5,6],[6,7],[7,8],
+                [5,9],[9,10],[10,11],[11,12],
+                [9,13],[13,14],[14,15],[15,16],
+                [13,17],[17,18],[18,19],[19,20],
+                [0,17]
+            ];
+
+            ctx.strokeStyle = 'rgba(99, 102, 241, 0.4)';
+            ctx.lineWidth = 2;
+            connections.forEach(([a, b]) => {
+                ctx.beginPath();
+                ctx.moveTo(landmarks[a].x * ctx.canvas.width, landmarks[a].y * ctx.canvas.height);
+                ctx.lineTo(landmarks[b].x * ctx.canvas.width, landmarks[b].y * ctx.canvas.height);
+                ctx.stroke();
+            });
+
+            // Draw landmarks
+            landmarks.forEach((lm, i) => {
+                ctx.beginPath();
+                ctx.arc(lm.x * ctx.canvas.width, lm.y * ctx.canvas.height, i === 8 ? 6 : 3, 0, Math.PI * 2);
+                ctx.fillStyle = i === 8 ? '#6366f1' : 'rgba(139, 92, 246, 0.6)';
+                ctx.fill();
+            });
+
+            // Glow on index fingertip
+            const tip = landmarks[8];
+            ctx.beginPath();
+            ctx.arc(tip.x * ctx.canvas.width, tip.y * ctx.canvas.height, 12, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(99, 102, 241, 0.2)';
+            ctx.fill();
+        }
+
+        function detectThumbGesture(landmarks) {
+            const now = Date.now();
+            const wrist = landmarks[0];
+            const thumbTip = landmarks[4];
+            const indexTip = landmarks[8];
+            const middleTip = landmarks[12];
+            const ringTip = landmarks[16];
+            const pinkyTip = landmarks[20];
+            const indexMcp = landmarks[5];
+            const middleMcp = landmarks[9];
+            const ringMcp = landmarks[13];
+            const pinkyMcp = landmarks[17];
+
+            // Check if fingers are curled (tips below MCPs in y)
+            const indexCurled = indexTip.y > indexMcp.y;
+            const middleCurled = middleTip.y > middleMcp.y;
+            const ringCurled = ringTip.y > ringMcp.y;
+            const pinkyCurled = pinkyTip.y > pinkyMcp.y;
+
+            const allFingersCurled = indexCurled && middleCurled && ringCurled && pinkyCurled;
+
+            if (allFingersCurled) {
+                // Thumbs up: thumb tip above wrist (lower y)
+                if (thumbTip.y < wrist.y - 0.1 && (now - gestureState.lastThumbsUp > 1500)) {
+                    gestureState.lastThumbsUp = now;
+                    transposeUp();
+                    showGestureToast('transpose-up', '👍 Key up → ' + getKey());
+                }
+                // Thumbs down: thumb tip below wrist (higher y)
+                if (thumbTip.y > wrist.y + 0.1 && (now - gestureState.lastThumbsDown > 1500)) {
+                    gestureState.lastThumbsDown = now;
+                    transposeDown();
+                    showGestureToast('transpose-down', '👎 Key down → ' + getKey());
+                }
+            }
+        }
+
+        // ========== WHEEL HIT DETECTION ==========
+        function checkWheelHit() {
+            if (!fingertipPos) return;
+
+            const video = document.getElementById('webcam');
+            const videoRect = video.getBoundingClientRect();
+
+            // Degree wheel
+            const degreeCanvas = document.getElementById('degreeWheel');
+            const degreeRect = degreeCanvas.getBoundingClientRect();
+            const degreeCx = degreeRect.left + degreeRect.width / 2;
+            const degreeCy = degreeRect.top + degreeRect.height / 2;
+            const degreeOuterR = degreeRect.width / 2 * (170 / 190);
+            const degreeInnerR = degreeRect.width / 2 * (80 / 190);
+
+            // Quality wheel
+            const qualityCanvas = document.getElementById('qualityWheel');
+            const qualityRect = qualityCanvas.getBoundingClientRect();
+            const qualityCx = qualityRect.left + qualityRect.width / 2;
+            const qualityCy = qualityRect.top + qualityRect.height / 2;
+            const qualityOuterR = qualityRect.width / 2 * (170 / 190);
+            const qualityInnerR = qualityRect.width / 2 * (80 / 190);
+
+            // Convert fingertip to screen coordinates
+            // Mirror X because webcam is mirrored
+            const fingerScreenX = (1 - fingertipPos.x) * videoRect.width + videoRect.left;
+            const fingerScreenY = fingertipPos.y * videoRect.height + videoRect.top;
+
+            let newDegree = null;
+            let newQuality = null;
+
+            // Check degree wheel
+            const ddx = fingerScreenX - degreeCx;
+            const ddy = fingerScreenY - degreeCy;
+            const ddist = Math.sqrt(ddx * ddx + ddy * ddy);
+
+            if (ddist >= degreeInnerR && ddist <= degreeOuterR) {
+                let angle = Math.atan2(ddy, ddx) + Math.PI / 2;
+                if (angle < 0) angle += Math.PI * 2;
+                newDegree = Math.floor(angle / (Math.PI * 2 / 7));
+                if (newDegree >= 7) newDegree = 6;
+            }
+
+            // Check quality wheel
+            const qdx = fingerScreenX - qualityCx;
+            const qdy = fingerScreenY - qualityCy;
+            const qdist = Math.sqrt(qdx * qdx + qdy * qdy);
+
+            if (qdist >= qualityInnerR && qdist <= qualityOuterR) {
+                let angle = Math.atan2(qdy, qdx) + Math.PI / 2;
+                if (angle < 0) angle += Math.PI * 2;
+                newQuality = Math.floor(angle / (Math.PI * 2 / QUALITIES.length));
+                if (newQuality >= QUALITIES.length) newQuality = QUALITIES.length - 1;
+            }
+
+            currentDegree = newDegree;
+            currentQuality = newQuality;
+
+            // Play chord if both degree and quality are selected
+            if (currentDegree !== null && currentQuality !== null) {
+                const chordName = getChordName(currentDegree, currentQuality);
+                const chordNotes = getChordNotes(currentDegree, currentQuality);
+
+                if (chordName !== lastChordName) {
+                    lastChordName = chordName;
+                    playChord(chordNotes);
+                    document.getElementById('chordName').textContent = chordName;
+                    document.getElementById('chordNotes').textContent = formatNotes(chordNotes);
+                }
+            } else {
+                if (lastChordName !== '') {
+                    lastChordName = '';
+                    stopChord();
+                    document.getElementById('chordName').textContent = '—';
+                    document.getElementById('chordNotes').textContent = '';
+                }
+            }
+
+            renderWheels();
+        }
+
+        // ========== GESTURE TOAST ==========
+        function showGestureToast(type, text) {
+            const container = document.getElementById('gestureFeedback');
+            const toast = document.createElement('div');
+            toast.className = `gesture-toast ${type}`;
+            toast.textContent = text;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+        }
+
+        // ========== MAIN LOOP ==========
+        function gameLoop() {
+            checkWheelHit();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ========== START ==========
+        document.getElementById('startBtn').addEventListener('click', () => {
+            initAudio();
+            initHandTracking();
+            document.getElementById('startOverlay').classList.add('hidden');
+            renderWheels();
+            gameLoop();
+        });
+
+        // Initial render
+        renderWheels();
+    })();
+    </script>
+</body>
+</html>
