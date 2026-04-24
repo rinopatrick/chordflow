@@ -38,35 +38,41 @@
 
         .chord-display {
             position: fixed;
-            bottom: 40px;
+            bottom: 100px;
             left: 50%;
             transform: translateX(-50%);
             text-align: center;
             z-index: 10;
             pointer-events: none;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+
+        .chord-display.active {
+            transform: translateX(-50%) scale(1.05);
         }
 
         .chord-display .chord-name {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 4rem;
+            font-size: 4.5rem;
             font-weight: 700;
             color: #fff;
-            text-shadow: 0 0 40px rgba(99,102,241,0.6), 0 0 80px rgba(139,92,246,0.3);
-            min-height: 5rem;
+            text-shadow: 0 0 50px rgba(99,102,241,0.7), 0 0 100px rgba(139,92,246,0.4);
+            min-height: 5.5rem;
             letter-spacing: -2px;
+            transition: all 0.2s ease;
         }
 
         .chord-display .chord-notes {
             font-family: 'JetBrains Mono', monospace;
             font-size: 1.1rem;
-            color: rgba(255,255,255,0.5);
-            margin-top: 4px;
+            color: rgba(255,255,255,0.55);
+            margin-top: 6px;
         }
 
         .chord-display .key-display {
-            margin-top: 10px;
-            font-size: 0.85rem;
-            color: rgba(255,255,255,0.35);
+            margin-top: 12px;
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.3);
             text-transform: uppercase;
             letter-spacing: 3px;
         }
@@ -74,22 +80,23 @@
         .wheel-label {
             position: fixed;
             z-index: 10;
-            font-size: 0.65rem;
+            font-size: 0.6rem;
             text-transform: uppercase;
             letter-spacing: 3px;
-            color: rgba(255,255,255,0.3);
+            color: rgba(255,255,255,0.25);
             font-weight: 600;
             pointer-events: none;
+            transition: color 0.3s;
         }
 
         .wheel-label.left {
-            top: 30px;
+            top: 24px;
             left: 50%;
             transform: translateX(-200px);
         }
 
         .wheel-label.right {
-            top: 30px;
+            top: 24px;
             left: 50%;
             transform: translateX(60px);
         }
@@ -98,7 +105,7 @@
         .start-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.92);
+            background: rgba(0,0,0,0.94);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -113,57 +120,317 @@
         }
 
         .start-overlay h1 {
-            font-size: 3rem;
+            font-size: 3.5rem;
             font-weight: 700;
-            background: linear-gradient(135deg, #6366f1, #ec4899);
+            background: linear-gradient(135deg, #6366f1, #ec4899, #a855f7);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
+            letter-spacing: -1px;
         }
 
-        .start-overlay p {
-            color: #555;
-            margin-bottom: 30px;
-            font-size: 0.9rem;
+        .start-overlay .subtitle {
+            font-size: 0.95rem;
+            color: #666;
+            margin-bottom: 40px;
         }
 
         .start-btn {
-            padding: 16px 48px;
+            padding: 18px 56px;
             background: linear-gradient(135deg, #6366f1, #8b5cf6);
             color: #fff;
             border: none;
-            border-radius: 14px;
+            border-radius: 16px;
             font-family: 'Space Grotesk', sans-serif;
-            font-size: 1.1rem;
+            font-size: 1.15rem;
             font-weight: 600;
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 30px rgba(99,102,241,0.3);
         }
 
         .start-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 30px rgba(99,102,241,0.4);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 40px rgba(99,102,241,0.5);
         }
 
         .start-instructions {
-            margin-top: 40px;
+            margin-top: 50px;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 14px;
-            max-width: 440px;
+            gap: 16px;
+            max-width: 480px;
         }
 
         .instruction-card {
             background: rgba(255,255,255,0.04);
             border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 12px;
-            padding: 18px 14px;
+            border-radius: 14px;
+            padding: 20px 16px;
             text-align: center;
+            transition: background 0.2s;
         }
 
-        .instruction-card .icon { font-size: 1.6rem; margin-bottom: 8px; }
+        .instruction-card:hover {
+            background: rgba(255,255,255,0.08);
+        }
+
+        .instruction-card .icon { font-size: 1.8rem; margin-bottom: 10px; }
         .instruction-card .label { font-size: 0.75rem; color: #777; line-height: 1.5; }
+
+        /* === SETTINGS PANEL === */
+        .settings-panel {
+            position: fixed;
+            top: 0; right: -320px;
+            width: 320px;
+            height: 100vh;
+            background: rgba(10,10,10,0.95);
+            backdrop-filter: blur(20px);
+            z-index: 150;
+            transition: right 0.4s cubic-bezier(0.4,0,0.2,1);
+            padding: 30px 24px;
+            overflow-y: auto;
+            border-left: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .settings-panel.open {
+            right: 0;
+        }
+
+        .settings-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            color: #aaa;
+            font-size: 1.2rem;
+            cursor: pointer;
+            z-index: 149;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .settings-toggle:hover {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+        }
+
+        .settings-panel h3 {
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .settings-panel h3::before {
+            content: '⚙';
+        }
+
+        .setting-group {
+            margin-bottom: 20px;
+        }
+
+        .setting-group label {
+            display: block;
+            font-size: 0.75rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 8px;
+        }
+
+        .setting-group select, .setting-group input[type="range"] {
+            width: 100%;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 10px 14px;
+            color: #fff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .setting-group select:hover, .setting-group select:focus {
+            border-color: rgba(99,102,241,0.5);
+        }
+
+        .setting-group input[type="range"] {
+            padding: 0;
+            height: 36px;
+            -webkit-appearance: none;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        .setting-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #6366f1;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .setting-group .value-display {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: #6366f1;
+            margin-top: 6px;
+            text-align: right;
+        }
+
+        /* === RECORDER BAR === */
+        .recorder-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(10px);
+            z-index: 50;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            gap: 16px;
+            transition: transform 0.3s;
+        }
+
+        .recorder-bar.hidden {
+            transform: translateY(100%);
+        }
+
+        .rec-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.15);
+            background: transparent;
+            color: #fff;
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .rec-btn:hover {
+            border-color: rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.05);
+        }
+
+        .rec-btn.recording {
+            border-color: #ef4444;
+            color: #ef4444;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
+            50% { box-shadow: 0 0 0 10px rgba(239,68,68,0); }
+        }
+
+        .loop-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: transparent;
+            color: rgba(255,255,255,0.4);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .loop-btn.active {
+            border-color: #6366f1;
+            color: #6366f1;
+            background: rgba(99,102,241,0.1);
+        }
+
+        .loop-btn:hover {
+            border-color: rgba(255,255,255,0.2);
+        }
+
+        .history-track {
+            flex: 1;
+            height: 48px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            gap: 6px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.1) transparent;
+        }
+
+        .history-track::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .history-track::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .history-track::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+        }
+
+        .history-item {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            padding: 6px 10px;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.06);
+            color: rgba(255,255,255,0.5);
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .history-item:hover {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+        }
+
+        .history-item.active-loop {
+            background: rgba(99,102,241,0.2);
+            color: #6366f1;
+        }
+
+        .clear-history-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: transparent;
+            color: rgba(255,255,255,0.3);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .clear-history-btn:hover {
+            border-color: rgba(239,68,68,0.5);
+            color: #ef4444;
+        }
 
         /* === GESTURE TOAST === */
         .gesture-feedback {
@@ -180,7 +447,7 @@
 
         .gesture-toast {
             padding: 10px 22px;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.85);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255,255,255,0.1);
             border-radius: 10px;
@@ -192,6 +459,8 @@
 
         .gesture-toast.up { border-color: #22c55e; color: #4ade80; }
         .gesture-toast.down { border-color: #ef4444; color: #f87171; }
+        .gesture-toast.mute { border-color: #f59e0b; color: #fbbf24; }
+        .gesture-toast.arpeggio { border-color: #8b5cf6; color: #a78bfa; }
 
         @keyframes toastIn {
             0% { transform: translateY(-20px); opacity: 0; }
@@ -203,21 +472,103 @@
             top: 0; left: 0;
             width: 100vw;
             height: 100vh;
-            background: rgba(0,0,0,0.25);
+            background: rgba(0,0,0,0.2);
             z-index: 1;
             pointer-events: none;
+        }
+
+        /* === PARTICLE CANVAS === */
+        #particles {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        /* === MUTE INDICATOR === */
+        .mute-indicator {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 5rem;
+            color: rgba(239,68,68,0.8);
+            z-index: 120;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .mute-indicator.show {
+            opacity: 1;
+        }
+
+        /* === ARPEGGIO INDICATOR === */
+        .arpeggio-indicator {
+            position: fixed;
+            top: 80px;
+            right: 70px;
+            font-size: 0.7rem;
+            color: rgba(139,92,246,0.6);
+            z-index: 120;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: color 0.3s;
+        }
+
+        .arpeggio-indicator.active {
+            color: #a78bfa;
+        }
+
+        /* === VOLUME INDICATOR === */
+        .volume-indicator {
+            position: fixed;
+            top: 50%;
+            right: 30px;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            z-index: 120;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .volume-indicator.show {
+            opacity: 1;
+        }
+
+        .volume-bar {
+            width: 4px;
+            background: linear-gradient(to top, #6366f1, #a78bfa);
+            border-radius: 2px;
+            transition: height 0.1s;
+        }
+
+        .volume-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: #6366f1;
         }
     </style>
 </head>
 <body>
     <video id="webcam" autoplay playsinline></video>
+    <canvas id="particles"></canvas>
     <div class="dim-overlay"></div>
     <canvas id="overlay"></canvas>
+
+    <div class="mute-indicator" id="muteIndicator">🔇</div>
+    <div class="arpeggio-indicator" id="arpeggioIndicator">Arpeggio</div>
+    <div class="volume-indicator" id="volumeIndicator"></div>
 
     <div class="wheel-label left" id="degreeLabel">Scale Degree</div>
     <div class="wheel-label right" id="qualityLabel">Chord Quality</div>
 
-    <div class="chord-display">
+    <div class="chord-display" id="chordDisplay">
         <div class="chord-name" id="chordName">—</div>
         <div class="chord-notes" id="chordNotes"></div>
         <div class="key-display" id="keyDisplay">Key of C</div>
@@ -225,26 +576,68 @@
 
     <div class="gesture-feedback" id="gestureFeedback"></div>
 
+    <div class="settings-toggle" id="settingsToggle">⚙</div>
+    <div class="settings-panel" id="settingsPanel">
+        <h3>Settings</h3>
+        <div class="setting-group">
+            <label>Sound Preset</label>
+            <select id="soundPreset">
+                <option value="piano">Piano</option>
+                <option value="organ">Organ</option>
+                <option value="pad">Pad</option>
+                <option value="synth">Synth</option>
+                <option value="pluck">Pluck</option>
+            </select>
+        </div>
+        <div class="setting-group">
+            <label>Volume</label>
+            <input type="range" id="volumeSlider" min="0" max="100" value="50">
+            <div class="value-display" id="volumeValue">50%</div>
+        </div>
+        <div class="setting-group">
+            <label>Octave Offset</label>
+            <input type="range" id="octaveSlider" min="-2" max="2" value="0">
+            <div class="value-display" id="octaveValue">0</div>
+        </div>
+        <div class="setting-group">
+            <label>Arpeggio BPM</label>
+            <input type="range" id="bpmSlider" min="60" max="240" value="120">
+            <div class="value-display" id="bpmValue">120 BPM</div>
+        </div>
+        <div class="setting-group">
+            <label>Reverb Mix</label>
+            <input type="range" id="reverbSlider" min="0" max="100" value="30">
+            <div class="value-display" id="reverbValue">30%</div>
+        </div>
+    </div>
+
+    <div class="recorder-bar" id="recorderBar">
+        <button class="rec-btn" id="recBtn" title="Record">●</button>
+        <button class="loop-btn" id="loopBtn" title="Loop">↻</button>
+        <div class="history-track" id="historyTrack"></div>
+        <button class="clear-history-btn" id="clearHistoryBtn" title="Clear">✕</button>
+    </div>
+
     <div class="start-overlay" id="startOverlay">
         <h1>ChordFlow</h1>
-        <p>Hand-tracking chord controller</p>
+        <p class="subtitle">Hand-tracking chord controller with advanced audio</p>
         <button class="start-btn" id="startBtn">Start Camera</button>
         <div class="start-instructions">
             <div class="instruction-card">
                 <div class="icon">👆</div>
-                <div class="label">Point at left wheel for degree, then right wheel for quality</div>
+                <div class="label">Point at left wheel for degree, right for quality</div>
             </div>
             <div class="instruction-card">
-                <div class="icon">✋</div>
-                <div class="label">Selection persists — pick degree then quality separately</div>
+                <div class="icon">✊</div>
+                <div class="label">Fist = Mute | ✌️ = Arpeggio toggle</div>
             </div>
             <div class="instruction-card">
                 <div class="icon">👍</div>
-                <div class="label">Thumbs up = transpose key up</div>
+                <div class="label">Thumbs up = Key up</div>
             </div>
             <div class="instruction-card">
                 <div class="icon">👎</div>
-                <div class="label">Thumbs down = transpose key down</div>
+                <div class="label">Thumbs down = Key down</div>
             </div>
         </div>
     </div>
@@ -287,74 +680,498 @@
         const transposeDown = () => { currentKeyIndex = (currentKeyIndex + 11) % 12; updateKeyDisplay(); };
         const updateKeyDisplay = () => { document.getElementById('keyDisplay').textContent = `Key of ${getKey()}`; };
 
-        // ========== AUDIO ==========
+        // ========== SETTINGS ==========
+        const settings = {
+            soundPreset: 'piano',
+            volume: 0.5,
+            octaveOffset: 0,
+            bpm: 120,
+            reverbMix: 0.3,
+            mute: false,
+            arpeggioEnabled: false
+        };
+
+        // ========== AUDIO ENGINE ==========
         let audioCtx = null;
         let activeOsc = [];
         let activeGain = null;
+        let convolver = null;
+        let reverbGain = null;
+        let dryGain = null;
+        let masterGain = null;
+        let arpeggioInterval = null;
+        let arpeggioNotes = [];
+        let arpeggioIndex = 0;
 
         function initAudio() {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx) return;
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            createReverb();
+            createMasterChain();
+        }
+
+        function createMasterChain() {
+            masterGain = audioCtx.createGain();
+            masterGain.gain.value = settings.volume;
+            masterGain.connect(audioCtx.destination);
+        }
+
+        function createReverb() {
+            if (!audioCtx) return;
+            convolver = audioCtx.createConvolver();
+            reverbGain = audioCtx.createGain();
+            dryGain = audioCtx.createGain();
+            
+            // Create impulse response for reverb
+            const rate = audioCtx.sampleRate;
+            const length = rate * 2;
+            const impulse = audioCtx.createBuffer(2, length, rate);
+            for (let channel = 0; channel < 2; channel++) {
+                const data = impulse.getChannelData(channel);
+                for (let i = 0; i < length; i++) {
+                    data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2.5);
+                }
+            }
+            convolver.buffer = impulse;
+            
+            convolver.connect(reverbGain);
+            reverbGain.connect(masterGain);
+            dryGain.connect(masterGain);
         }
 
         function noteToFreq(ni) {
-            return 440 * Math.pow(2, (ni + 60 - 69) / 12);
+            return 440 * Math.pow(2, (ni + 60 + settings.octaveOffset * 12 - 69) / 12);
+        }
+
+        function getOscConfig(type) {
+            const configs = {
+                piano: { type: 'triangle', subType: 'sine', subGain: 0.15, detune: 0, filter: null },
+                organ: { type: 'square', subType: 'square', subGain: 0.3, detune: 0, filter: { type: 'lowpass', freq: 800 } },
+                pad: { type: 'sawtooth', subType: 'sawtooth', subGain: 0.4, detune: 5, filter: { type: 'lowpass', freq: 1200 } },
+                synth: { type: 'sawtooth', subType: 'triangle', subGain: 0.35, detune: -5, filter: { type: 'lowpass', freq: 2000, resonance: 15 } },
+                pluck: { type: 'triangle', subType: 'sine', subGain: 0.1, detune: 0, filter: { type: 'lowpass', freq: 3000 } }
+            };
+            return configs[type] || configs.piano;
         }
 
         function playChord(noteIndices) {
+            if (settings.mute || !noteIndices || noteIndices.length === 0) {
+                arpeggioNotes = [];
+                stopArpeggio();
+                return;
+            }
             stopChord();
             if (!audioCtx) return;
 
+            if (settings.arpeggioEnabled) {
+                arpeggioNotes = [...noteIndices];
+                arpeggioIndex = 0;
+                startArpeggio();
+                return;
+            }
+
+            const config = getOscConfig(settings.soundPreset);
+            const now = audioCtx.currentTime;
+
             activeGain = audioCtx.createGain();
-            activeGain.gain.setValueAtTime(0, audioCtx.currentTime);
-            activeGain.gain.linearRampToValueAtTime(0.12, audioCtx.currentTime + 0.04);
-            activeGain.connect(audioCtx.destination);
+            activeGain.gain.setValueAtTime(0, now);
+            activeGain.gain.linearRampToValueAtTime(settings.volume * 0.4, now + 0.03);
+            activeGain.gain.exponentialRampToValueAtTime(settings.volume * 0.35, now + 0.15);
+            activeGain.gain.exponentialRampToValueAtTime(settings.volume * 0.08, now + 1.5);
+            
+            if (dryGain) activeGain.connect(dryGain);
+            if (settings.reverbMix > 0.01) {
+                const revSend = audioCtx.createGain();
+                revSend.gain.value = settings.reverbMix * 0.6;
+                activeGain.connect(revSend);
+                revSend.connect(convolver);
+            }
 
             noteIndices.forEach(ni => {
+                const freq = noteToFreq(ni);
                 const osc = audioCtx.createOscillator();
-                osc.type = 'triangle';
-                osc.frequency.value = noteToFreq(ni);
+                osc.type = config.type;
+                osc.frequency.value = freq;
+                osc.detune.value = config.detune;
 
-                const sub = audioCtx.createOscillator();
-                sub.type = 'sine';
-                sub.frequency.value = noteToFreq(ni);
+                const oG = audioCtx.createGain();
+                oG.gain.value = config.type === 'sawtooth' ? 0.35 : 0.5;
 
-                const oG = audioCtx.createGain(); oG.gain.value = 0.5;
-                const sG = audioCtx.createGain(); sG.gain.value = 0.25;
+                if (config.filter) {
+                    const filter = audioCtx.createBiquadFilter();
+                    filter.type = config.filter.type;
+                    filter.frequency.value = config.filter.freq;
+                    if (config.filter.resonance) {
+                        filter.Q.value = config.filter.resonance;
+                    }
+                    osc.connect(oG).connect(filter).connect(activeGain);
+                } else {
+                    osc.connect(oG).connect(activeGain);
+                }
 
-                osc.connect(oG).connect(activeGain);
-                sub.connect(sG).connect(activeGain);
-                osc.start(); sub.start();
-                activeOsc.push(osc, sub);
+                if (config.subType) {
+                    const sub = audioCtx.createOscillator();
+                    sub.type = config.subType;
+                    sub.frequency.value = freq * 0.5;
+                    const sG = audioCtx.createGain();
+                    sG.gain.value = config.subGain;
+                    sub.connect(sG).connect(activeGain);
+                    osc.start(); sub.start();
+                    activeOsc.push(osc, sub);
+                } else {
+                    osc.start();
+                    activeOsc.push(osc);
+                }
             });
         }
 
+        function startArpeggio() {
+            stopArpeggio();
+            if (arpeggioNotes.length === 0) return;
+            const config = getOscConfig(settings.soundPreset);
+            const intervalMs = 60000 / settings.bpm / 2;
+            
+            function playArpNote() {
+                if (arpeggioNotes.length === 0 || settings.mute) return;
+                const note = arpeggioNotes[arpeggioIndex % arpeggioNotes.length];
+                const freq = noteToFreq(note);
+                
+                const osc = audioCtx.createOscillator();
+                osc.type = config.type;
+                osc.frequency.value = freq;
+                osc.detune.value = config.detune;
+                
+                const oG = audioCtx.createGain();
+                const now = audioCtx.currentTime;
+                oG.gain.setValueAtTime(0, now);
+                oG.gain.linearRampToValueAtTime(settings.volume * 0.35, now + 0.015);
+                oG.gain.exponentialRampToValueAtTime(0.001, now + intervalMs * 0.9);
+                
+                if (config.filter) {
+                    const filter = audioCtx.createBiquadFilter();
+                    filter.type = config.filter.type;
+                    filter.frequency.value = config.filter.freq;
+                    if (config.filter.resonance) filter.Q.value = config.filter.resonance;
+                    osc.connect(oG).connect(filter).connect(dryGain);
+                } else {
+                    osc.connect(oG).connect(dryGain);
+                }
+                
+                osc.start();
+                activeOsc.push(osc);
+                
+                arpeggioIndex++;
+            }
+            
+            playArpNote();
+            arpeggioInterval = setInterval(playArpNote, intervalMs);
+        }
+
+        function stopArpeggio() {
+            if (arpeggioInterval) {
+                clearInterval(arpeggioInterval);
+                arpeggioInterval = null;
+            }
+        }
+
         function stopChord() {
+            stopArpeggio();
             if (activeGain) {
-                activeGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.08);
+                const now = audioCtx.currentTime;
+                activeGain.gain.linearRampToValueAtTime(0, now + 0.1);
                 activeGain = null;
             }
-            activeOsc.forEach(o => { try { o.stop(audioCtx.currentTime + 0.1); } catch(e) {} });
+            activeOsc.forEach(o => { try { o.stop(audioCtx.currentTime + 0.15); } catch(e) {} });
             activeOsc = [];
         }
 
+        function toggleMute() {
+            settings.mute = !settings.mute;
+            const indicator = document.getElementById('muteIndicator');
+            if (settings.mute) {
+                indicator.classList.add('show');
+                stopChord();
+                showToast('mute', '🔇 Mute ON');
+            } else {
+                indicator.classList.remove('show');
+                showToast('mute', '🔊 Mute OFF');
+            }
+        }
+
+        function toggleArpeggio() {
+            settings.arpeggioEnabled = !settings.arpeggioEnabled;
+            const indicator = document.getElementById('arpeggioIndicator');
+            if (settings.arpeggioEnabled) {
+                indicator.classList.add('active');
+                if (currentDegree !== null && currentQuality !== null) {
+                    arpeggioNotes = getChordNotes(currentDegree, currentQuality);
+                    if (audioCtx) startArpeggio();
+                }
+                showToast('arpeggio', '🎵 Arpeggio ON');
+            } else {
+                indicator.classList.remove('active');
+                stopArpeggio();
+                showToast('arpeggio', '⏸ Arpeggio OFF');
+            }
+        }
+
+        // ========== PARTICLES ==========
+        const particleCanvas = document.getElementById('particles');
+        const pCtx = particleCanvas.getContext('2d');
+        let particles = [];
+
+        function resizeParticles() {
+            particleCanvas.width = window.innerWidth;
+            particleCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeParticles);
+        resizeParticles();
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.size = Math.random() * 4 + 1;
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 3 + 1;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                this.life = 1;
+                this.decay = Math.random() * 0.02 + 0.015;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += 0.05;
+                this.life -= this.decay;
+                this.size *= 0.98;
+            }
+            draw() {
+                pCtx.globalAlpha = this.life;
+                pCtx.fillStyle = this.color;
+                pCtx.beginPath();
+                pCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                pCtx.fill();
+            }
+        }
+
+        function spawnParticles(x, y, color, count) {
+            for (let i = 0; i < count; i++) {
+                particles.push(new Particle(x, y, color));
+            }
+        }
+
+        function updateParticles() {
+            pCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+            particles = particles.filter(p => p.life > 0);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            pCtx.globalAlpha = 1;
+        }
+
+        // ========== HISTORY / RECORDER ==========
+        let history = [];
+        let isRecording = false;
+        let recordedSequence = [];
+        let loopStart = 0;
+        let loopEnd = 0;
+        let isLooping = false;
+        let loopTimer = null;
+
+        function addToHistory(chordName, notes) {
+            history.push({ name: chordName, notes: notes, time: Date.now() });
+            if (history.length > 50) history.shift();
+            renderHistory();
+            if (isRecording) {
+                recordedSequence.push({ name: chordName, notes: notes, time: Date.now() });
+            }
+        }
+
+        function renderHistory() {
+            const track = document.getElementById('historyTrack');
+            track.innerHTML = '';
+            history.forEach((item, i) => {
+                const el = document.createElement('div');
+                el.className = 'history-item';
+                if (isLooping && i >= loopStart && i < loopEnd) el.classList.add('active-loop');
+                el.textContent = item.name;
+                el.title = item.notes.join(' — ');
+                el.onclick = () => playHistoryItem(item);
+                track.appendChild(el);
+            });
+            track.scrollLeft = track.scrollWidth;
+        }
+
+        function playHistoryItem(item) {
+            if (!audioCtx) initAudio();
+            const notes = item.notes.map(n => NOTES.indexOf(n));
+            playChord(notes);
+            setTimeout(stopChord, 800);
+        }
+
+        function toggleRecord() {
+            isRecording = !isRecording;
+            const btn = document.getElementById('recBtn');
+            if (isRecording) {
+                recordedSequence = [];
+                btn.classList.add('recording');
+                btn.title = 'Stop Recording';
+                showToast('rec', '● Recording...');
+            } else {
+                btn.classList.remove('recording');
+                btn.title = 'Record';
+                showToast('rec', `Recorded ${recordedSequence.length} chords`);
+            }
+        }
+
+        function toggleLoop() {
+            const btn = document.getElementById('loopBtn');
+            isLooping = !isLooping;
+            btn.classList.toggle('active', isLooping);
+            if (isLooping) {
+                loopStart = Math.max(0, history.length - 8);
+                loopEnd = history.length;
+                startLoopPlayback();
+                showToast('loop', '↻ Looping');
+            } else {
+                stopLoopPlayback();
+                showToast('loop', 'Loop OFF');
+            }
+        }
+
+        function startLoopPlayback() {
+            stopLoopPlayback();
+            if (loopStart >= loopEnd) return;
+            let idx = loopStart;
+            function playNext() {
+                if (!isLooping) return;
+                if (idx >= loopEnd) idx = loopStart;
+                const item = history[idx];
+                if (item) {
+                    const notes = item.notes.map(n => NOTES.indexOf(n));
+                    playChord(notes);
+                    setTimeout(stopChord, 600);
+                }
+                idx++;
+                const bpm = settings.bpm;
+                loopTimer = setTimeout(playNext, 60000 / bpm);
+            }
+            playNext();
+        }
+
+        function stopLoopPlayback() {
+            if (loopTimer) {
+                clearTimeout(loopTimer);
+                loopTimer = null;
+            }
+        }
+
+        function clearHistory() {
+            history = [];
+            recordedSequence = [];
+            renderHistory();
+            stopLoopPlayback();
+            isLooping = false;
+            document.getElementById('loopBtn').classList.remove('active');
+        }
+
+        // ========== VOLUME VISUALIZER ==========
+        function showVolumeIndicator() {
+            const indicator = document.getElementById('volumeIndicator');
+            indicator.classList.add('show');
+            const bars = 12;
+            indicator.innerHTML = '';
+            for (let i = 0; i < bars; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'volume-bar';
+                const h = Math.max(4, Math.random() * settings.volume * 40);
+                bar.style.height = h + 'px';
+                indicator.appendChild(bar);
+            }
+            const val = document.createElement('div');
+            val.className = 'volume-value';
+            val.textContent = Math.round(settings.volume * 100) + '%';
+            indicator.appendChild(val);
+            clearTimeout(showVolumeIndicator._timer);
+            showVolumeIndicator._timer = setTimeout(() => indicator.classList.remove('show'), 1500);
+        }
+
+        // ========== GESTURE DETECTION ==========
+        function detectThumbGesture(lm) {
+            const now = Date.now();
+            const wrist = lm[0], thumbTip = lm[4];
+            const indexTip = lm[8], middleTip = lm[12], ringTip = lm[16], pinkyTip = lm[20];
+            const indexMcp = lm[5], middleMcp = lm[9], ringMcp = lm[13], pinkyMcp = lm[17];
+
+            // Fist detection (all fingers curled)
+            const curled = indexTip.y > indexMcp.y && middleTip.y > middleMcp.y && ringTip.y > ringMcp.y && pinkyTip.y > pinkyMcp.y;
+            if (curled && now - (gestureState.lastFist || 0) > 1500) {
+                gestureState.lastFist = now;
+                toggleMute();
+                return;
+            }
+
+            // Peace sign (index + middle up, others down)
+            const peace = indexTip.y < indexMcp.y && middleTip.y < middleMcp.y && ringTip.y > ringMcp.y && pinkyTip.y > pinkyMcp.y;
+            if (peace && now - (gestureState.lastPeace || 0) > 1500) {
+                gestureState.lastPeace = now;
+                toggleArpeggio();
+                return;
+            }
+
+            // Thumbs up/down
+            if (thumbTip.y < wrist.y - 0.1 && (now - gestureState.lastThumbsUp > 1200)) {
+                gestureState.lastThumbsUp = now;
+                transposeUp();
+                showToast('up', `👍 Key up → ${getKey()}`);
+            }
+            if (thumbTip.y > wrist.y + 0.1 && (now - gestureState.lastThumbsDown > 1200)) {
+                gestureState.lastThumbsDown = now;
+                transposeDown();
+                showToast('down', `👎 Key down → ${getKey()}`);
+            }
+
+            // Spread/pinch for volume (distance between thumb and index)
+            const thumbIndexDist = Math.sqrt(
+                Math.pow(thumbTip.x - indexTip.x, 2) + Math.pow(thumbTip.y - indexTip.y, 2)
+            );
+            if (gestureState.lastThumbIndexDist) {
+                const diff = thumbIndexDist - gestureState.lastThumbIndexDist;
+                if (Math.abs(diff) > 0.03) {
+                    if (diff > 0.03 && now - (gestureState.lastVolumeChange || 0) > 300) {
+                        settings.volume = Math.min(1, settings.volume + 0.1);
+                        updateVolumeUI();
+                        gestureState.lastVolumeChange = now;
+                        showVolumeIndicator();
+                    } else if (diff < -0.03 && now - (gestureState.lastVolumeChange || 0) > 300) {
+                        settings.volume = Math.max(0, settings.volume - 0.1);
+                        updateVolumeUI();
+                        gestureState.lastVolumeChange = now;
+                        showVolumeIndicator();
+                    }
+                }
+            }
+            gestureState.lastThumbIndexDist = thumbIndexDist;
+        }
+
+        const gestureState = { lastThumbsUp: 0, lastThumbsDown: 0, lastFist: 0, lastPeace: 0, lastVolumeChange: 0, lastThumbIndexDist: null };
+
         // ========== WHEEL GEOMETRY ==========
-        // Wheels are defined in normalized screen coordinates (0-1)
         const degreeWheel = { cx: 0.22, cy: 0.42, outerR: 0.16, innerR: 0.07 };
         const qualityWheel = { cx: 0.78, cy: 0.42, outerR: 0.16, innerR: 0.07 };
 
         function getWheelPixel(w) {
             const s = Math.min(window.innerWidth, window.innerHeight);
-            return {
-                cx: w.cx * window.innerWidth,
-                cy: w.cy * window.innerHeight,
-                outerR: w.outerR * s,
-                innerR: w.innerR * s
-            };
+            return { cx: w.cx * window.innerWidth, cy: w.cy * window.innerHeight, outerR: w.outerR * s, innerR: w.innerR * s };
         }
 
         // ========== RENDER ==========
         const overlayCanvas = document.getElementById('overlay');
         const ctx = overlayCanvas.getContext('2d');
+        let pulsePhase = 0;
 
         function resize() {
             overlayCanvas.width = window.innerWidth;
@@ -371,31 +1188,33 @@
         function drawWheel(w, segments, colors, activeIdx, labels) {
             const p = getWheelPixel(w);
             const sliceAngle = (Math.PI * 2) / segments;
+            pulsePhase += 0.02;
 
             for (let i = 0; i < segments; i++) {
                 const start = -Math.PI/2 + i * sliceAngle;
                 const end = start + sliceAngle;
                 const isActive = i === activeIdx;
+                const pulse = isActive ? 1 + Math.sin(pulsePhase * 3) * 0.05 : 1;
 
                 ctx.beginPath();
-                ctx.arc(p.cx, p.cy, p.outerR, start, end);
-                ctx.arc(p.cx, p.cy, p.innerR, end, start, true);
+                ctx.arc(p.cx, p.cy, p.outerR * pulse, start, end);
+                ctx.arc(p.cx, p.cy, Math.max(p.innerR, p.innerR * pulse), end, start, true);
                 ctx.closePath();
 
-                ctx.fillStyle = hexToRGBA(colors[i % colors.length], isActive ? 0.85 : 0.2);
+                ctx.fillStyle = hexToRGBA(colors[i % colors.length], isActive ? 0.9 : 0.22);
                 ctx.fill();
 
                 if (isActive) {
                     ctx.save();
                     ctx.shadowColor = colors[i % colors.length];
-                    ctx.shadowBlur = 30;
-                    ctx.fillStyle = hexToRGBA(colors[i % colors.length], 0.6);
+                    ctx.shadowBlur = 35;
+                    ctx.fillStyle = hexToRGBA(colors[i % colors.length], 0.5);
                     ctx.fill();
                     ctx.restore();
                 }
 
                 ctx.strokeStyle = isActive ? colors[i % colors.length] : 'rgba(255,255,255,0.08)';
-                ctx.lineWidth = isActive ? 2 : 0.5;
+                ctx.lineWidth = isActive ? 2.5 : 0.5;
                 ctx.stroke();
 
                 // Label
@@ -407,20 +1226,20 @@
                 ctx.save();
                 ctx.translate(lx, ly);
                 ctx.fillStyle = isActive ? '#fff' : 'rgba(255,255,255,0.35)';
-                ctx.font = isActive ? `bold ${Math.max(12, p.outerR * 0.1)}px "JetBrains Mono"` : `${Math.max(10, p.outerR * 0.08)}px "JetBrains Mono"`;
+                ctx.font = isActive ? `bold ${Math.max(11, p.outerR * 0.09)}px "JetBrains Mono"` : `${Math.max(9, p.outerR * 0.07)}px "JetBrains Mono"`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 const lines = labels[i].split('\n');
                 lines.forEach((line, li) => {
-                    ctx.fillText(line, 0, (li - (lines.length-1)/2) * (isActive ? 16 : 13));
+                    ctx.fillText(line, 0, (li - (lines.length-1)/2) * (isActive ? 15 : 12));
                 });
                 ctx.restore();
             }
 
             // Center
             ctx.beginPath();
-            ctx.arc(p.cx, p.cy, p.innerR - 2, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.arc(p.cx, p.cy, Math.max(p.innerR - 3, 3), 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
             ctx.fill();
             ctx.strokeStyle = 'rgba(255,255,255,0.06)';
             ctx.lineWidth = 1;
@@ -428,15 +1247,14 @@
         }
 
         function drawFingertip(fx, fy) {
-            // Draw a soft glow at fingertip position on overlay
-            const sx = (1 - fx) * overlayCanvas.width;  // mirror X
+            const sx = (1 - fx) * overlayCanvas.width;
             const sy = fy * overlayCanvas.height;
-            const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, 30);
-            grad.addColorStop(0, 'rgba(99,102,241,0.6)');
+            const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, 40);
+            grad.addColorStop(0, 'rgba(99,102,241,0.5)');
             grad.addColorStop(1, 'rgba(99,102,241,0)');
             ctx.fillStyle = grad;
             ctx.beginPath();
-            ctx.arc(sx, sy, 30, 0, Math.PI * 2);
+            ctx.arc(sx, sy, 40, 0, Math.PI * 2);
             ctx.fill();
         }
 
@@ -450,7 +1268,7 @@
                 [0,17]
             ];
 
-            ctx.strokeStyle = 'rgba(139,92,246,0.3)';
+            ctx.strokeStyle = 'rgba(139,92,246,0.25)';
             ctx.lineWidth = 2;
             connections.forEach(([a,b]) => {
                 const ax = (1 - landmarks[a].x) * overlayCanvas.width;
@@ -467,8 +1285,8 @@
                 const x = (1 - lm.x) * overlayCanvas.width;
                 const y = lm.y * overlayCanvas.height;
                 ctx.beginPath();
-                ctx.arc(x, y, i === 8 ? 5 : 2.5, 0, Math.PI * 2);
-                ctx.fillStyle = i === 8 ? '#6366f1' : 'rgba(139,92,246,0.5)';
+                ctx.arc(x, y, i === 8 ? 6 : 3, 0, Math.PI * 2);
+                ctx.fillStyle = i === 8 ? '#6366f1' : 'rgba(139,92,246,0.4)';
                 ctx.fill();
             });
         }
@@ -478,7 +1296,6 @@
         let camera = null;
         let fingertipPos = null;
         let lastLandmarks = null;
-        let gestureState = { lastThumbsUp: 0, lastThumbsDown: 0 };
 
         function initHandTracking() {
             const video = document.getElementById('webcam');
@@ -503,7 +1320,6 @@
                 } else {
                     lastLandmarks = null;
                     fingertipPos = null;
-                    // Don't reset locked selections when hand disappears
                 }
             });
 
@@ -516,68 +1332,38 @@
             camera.start();
         }
 
-        function detectThumbGesture(lm) {
-            const now = Date.now();
-            const wrist = lm[0], thumbTip = lm[4];
-            const indexTip = lm[8], middleTip = lm[12], ringTip = lm[16], pinkyTip = lm[20];
-            const indexMcp = lm[5], middleMcp = lm[9], ringMcp = lm[13], pinkyMcp = lm[17];
-
-            const curled = indexTip.y > indexMcp.y && middleTip.y > middleMcp.y && ringTip.y > ringMcp.y && pinkyTip.y > pinkyMcp.y;
-
-            if (curled) {
-                if (thumbTip.y < wrist.y - 0.1 && (now - gestureState.lastThumbsUp > 1200)) {
-                    gestureState.lastThumbsUp = now;
-                    transposeUp();
-                    showToast('up', `👍 Key up → ${getKey()}`);
-                }
-                if (thumbTip.y > wrist.y + 0.1 && (now - gestureState.lastThumbsDown > 1200)) {
-                    gestureState.lastThumbsDown = now;
-                    transposeDown();
-                    showToast('down', `👎 Key down → ${getKey()}`);
-                }
-            }
-        }
-
-        // ========== HIT DETECTION (normalized coords) ==========
-        // Selection persists: once you pick a degree, it stays until you pick a different one.
-        // Quality same. Finger off both wheels = no reset.
+        // ========== HIT DETECTION ==========
         let hoveredDegree = null;
         let hoveredQuality = null;
-        let lockedDegree = null;   // persists after finger leaves
-        let lockedQuality = null;  // persists after finger leaves
+        let lockedDegree = null;
+        let lockedQuality = null;
         let fingerOnDegreeWheel = false;
         let fingerOnQualityWheel = false;
 
         function hitTestWheel(fx, fy, w, segments) {
-            // MediaPipe gives normalized 0-1 coords relative to video frame.
-            // We need to map these to screen coords accounting for object-fit:cover.
             const video = document.getElementById('webcam');
             const vw = video.videoWidth || 1280;
             const vh = video.videoHeight || 720;
             const sw = window.innerWidth;
             const sh = window.innerHeight;
 
-            // object-fit:cover — video fills screen, centered, cropped
             const videoAspect = vw / vh;
             const screenAspect = sw / sh;
             let scaleX, scaleY, offsetX, offsetY;
 
             if (screenAspect > videoAspect) {
-                // Screen is wider — video fills width, crops top/bottom
                 scaleX = 1.0;
                 scaleY = screenAspect / videoAspect;
                 offsetX = 0;
                 offsetY = (1 - scaleY) / 2;
             } else {
-                // Screen is taller — video fills height, crops left/right
                 scaleX = videoAspect / screenAspect;
                 scaleY = 1.0;
                 offsetX = (1 - scaleX) / 2;
                 offsetY = 0;
             }
 
-            // Map MediaPipe (0-1) to screen position, accounting for crop + mirror
-            const sx = (1 - fx) * sw;  // mirror X
+            const sx = (1 - fx) * sw;
             const sy = fy * sh;
 
             const p = getWheelPixel(w);
@@ -586,7 +1372,6 @@
             const dy = sy - p.cy;
             const dist = Math.sqrt(dx*dx + dy*dy);
 
-            // Generous hit area: innerR to outerR + some padding
             const hitInner = p.innerR * 0.7;
             const hitOuter = p.outerR * 1.15;
 
@@ -601,15 +1386,12 @@
         }
 
         function processFrame() {
-            // Clear overlay
             ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
 
-            // Draw hand skeleton
             if (lastLandmarks) {
                 drawHandSkeleton(lastLandmarks);
             }
 
-            // Hit test wheels with persistent selection
             fingerOnDegreeWheel = false;
             fingerOnQualityWheel = false;
 
@@ -629,18 +1411,22 @@
                 drawFingertip(fingertipPos.x, fingertipPos.y);
             }
 
-            // Use locked values for display
             currentDegree = lockedDegree;
             currentQuality = lockedQuality;
 
+            const chordDisplay = document.getElementById('chordDisplay');
             if (currentDegree !== null && currentQuality !== null) {
                 const cn = getChordName(currentDegree, currentQuality);
                 const notes = getChordNotes(currentDegree, currentQuality);
                 if (cn !== lastChordName) {
                     lastChordName = cn;
                     playChord(notes);
+                    addToHistory(cn, notes.map(ni => NOTES[ni % 12]));
+                    chordDisplay.classList.add('active');
                     document.getElementById('chordName').textContent = cn;
                     document.getElementById('chordNotes').textContent = formatNotes(notes);
+                    spawnParticles(overlayCanvas.width/2, overlayCanvas.height * 0.6, DEGREE_COLORS[currentDegree], 20);
+                    setTimeout(() => chordDisplay.classList.remove('active'), 200);
                 }
             } else if (currentDegree !== null && currentQuality === null) {
                 document.getElementById('chordName').textContent = `${getDegreeNote(currentDegree)}?`;
@@ -659,14 +1445,12 @@
                 }
             }
 
-            // Draw wheels
             const degreeLabels = DEGREE_LABELS.map((l,i) => `${l}\n${getDegreeNote(i)}`);
             const qualityLabels = QUALITIES.map(q => q.label);
 
             drawWheel(degreeWheel, 7, DEGREE_COLORS, currentDegree, degreeLabels);
             drawWheel(qualityWheel, QUALITIES.length, QUALITY_COLORS, currentQuality, qualityLabels);
 
-            // Update label positions
             const dl = document.getElementById('degreeLabel');
             const ql = document.getElementById('qualityLabel');
             const dp = getWheelPixel(degreeWheel);
@@ -678,26 +1462,79 @@
             ql.style.left = qp.cx + 'px';
             ql.style.transform = 'translateX(-50%)';
 
+            updateParticles();
             requestAnimationFrame(processFrame);
         }
 
-        // ========== TOAST ==========
+        function updateVolumeUI() {
+            document.getElementById('volumeSlider').value = settings.volume * 100;
+            document.getElementById('volumeValue').textContent = Math.round(settings.volume * 100) + '%';
+            if (masterGain) masterGain.gain.value = settings.volume;
+        }
+
         function showToast(type, text) {
             const c = document.getElementById('gestureFeedback');
             const t = document.createElement('div');
             t.className = `gesture-toast ${type}`;
             t.textContent = text;
             c.appendChild(t);
-            setTimeout(() => t.remove(), 2000);
+            setTimeout(() => t.remove(), 2200);
         }
 
-        // ========== START ==========
+        // ========== UI EVENT LISTENERS ==========
         document.getElementById('startBtn').addEventListener('click', () => {
             initAudio();
             initHandTracking();
             document.getElementById('startOverlay').classList.add('hidden');
             processFrame();
         });
+
+        document.getElementById('settingsToggle').addEventListener('click', () => {
+            document.getElementById('settingsPanel').classList.toggle('open');
+        });
+
+        document.getElementById('soundPreset').addEventListener('change', (e) => {
+            settings.soundPreset = e.target.value;
+        });
+
+        document.getElementById('volumeSlider').addEventListener('input', (e) => {
+            settings.volume = e.target.value / 100;
+            document.getElementById('volumeValue').textContent = e.target.value + '%';
+            if (masterGain) masterGain.gain.value = settings.volume;
+        });
+
+        document.getElementById('octaveSlider').addEventListener('input', (e) => {
+            settings.octaveOffset = parseInt(e.target.value);
+            document.getElementById('octaveValue').textContent = (settings.octaveOffset >= 0 ? '+' : '') + settings.octaveOffset;
+        });
+
+        document.getElementById('bpmSlider').addEventListener('input', (e) => {
+            settings.bpm = parseInt(e.target.value);
+            document.getElementById('bpmValue').textContent = settings.bpm + ' BPM';
+            if (isLooping) {
+                stopLoopPlayback();
+                startLoopPlayback();
+            }
+        });
+
+        document.getElementById('reverbSlider').addEventListener('input', (e) => {
+            settings.reverbMix = e.target.value / 100;
+            document.getElementById('reverbValue').textContent = e.target.value + '%';
+        });
+
+        document.getElementById('recBtn').addEventListener('click', toggleRecord);
+        document.getElementById('loopBtn').addEventListener('click', toggleLoop);
+        document.getElementById('clearHistoryBtn').addEventListener('click', clearHistory);
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') { e.preventDefault(); toggleMute(); }
+            if (e.code === 'KeyA') { e.preventDefault(); toggleArpeggio(); }
+            if (e.code === 'KeyR') { e.preventDefault(); toggleRecord(); }
+            if (e.code === 'KeyL') { e.preventDefault(); toggleLoop(); }
+            if (e.code === 'Escape') { document.getElementById('settingsPanel').classList.remove('open'); }
+        });
+
     })();
     </script>
 </body>
