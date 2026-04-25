@@ -804,11 +804,18 @@
         <div class="setting-group">
             <label>Sound Preset</label>
             <select id="soundPreset">
-                <option value="piano">Piano</option>
-                <option value="organ">Organ</option>
-                <option value="pad">Pad</option>
-                <option value="synth">Synth</option>
-                <option value="pluck">Pluck</option>
+                <option value="piano">🎹 Piano</option>
+                <option value="rhodes">🪗 Rhodes</option>
+                <option value="epi">🎸 E-Piano</option>
+                <option value="organ">⛪ Organ</option>
+                <option value="pad">☁️ Pad</option>
+                <option value="synth">🎛️ Synth</option>
+                <option value="pluck">🎸 Pluck</option>
+                <option value="strings">🎻 Strings</option>
+                <option value="flute">🎵 Flute</option>
+                <option value="bass">🔊 Bass</option>
+                <option value="bell">🔔 Bell</option>
+                <option value="choir">🎤 Choir</option>
             </select>
         </div>
         <div class="setting-group">
@@ -981,11 +988,18 @@
 
         function getOscConfig(type) {
             const configs = {
-                piano: { type: 'triangle', subType: 'sine', subGain: 0.15, detune: 0, filter: null },
-                organ: { type: 'square', subType: 'square', subGain: 0.3, detune: 0, filter: { type: 'lowpass', freq: 800 } },
-                pad: { type: 'sawtooth', subType: 'sawtooth', subGain: 0.4, detune: 5, filter: { type: 'lowpass', freq: 1200 } },
-                synth: { type: 'sawtooth', subType: 'triangle', subGain: 0.35, detune: -5, filter: { type: 'lowpass', freq: 2000, resonance: 15 } },
-                pluck: { type: 'triangle', subType: 'sine', subGain: 0.1, detune: 0, filter: { type: 'lowpass', freq: 3000 } }
+                piano:  { type: 'triangle', subType: 'sine', subGain: 0.15, detune: 0, filter: null },
+                organ:  { type: 'square', subType: 'square', subGain: 0.3, detune: 0, filter: { type: 'lowpass', freq: 800 } },
+                pad:    { type: 'sawtooth', subType: 'sawtooth', subGain: 0.4, detune: 5, filter: { type: 'lowpass', freq: 1200 } },
+                synth:  { type: 'sawtooth', subType: 'triangle', subGain: 0.35, detune: -5, filter: { type: 'lowpass', freq: 2000, resonance: 15 } },
+                pluck:  { type: 'triangle', subType: 'sine', subGain: 0.1, detune: 0, filter: { type: 'lowpass', freq: 3000 } },
+                strings:{ type: 'sawtooth', subType: 'sine', subGain: 0.3, detune: 7, filter: { type: 'lowpass', freq: 1600 } },
+                flute:  { type: 'sine', subType: 'sine', subGain: 0.5, detune: 2, filter: { type: 'bandpass', freq: 1800, resonance: 5 } },
+                bass:   { type: 'sawtooth', subType: 'square', subGain: 0.5, detune: 0, filter: { type: 'lowpass', freq: 400 } },
+                bell:   { type: 'sine', subType: 'triangle', subGain: 0.2, detune: 0, filter: { type: 'highpass', freq: 500 } },
+                choir:  { type: 'sawtooth', subType: 'sawtooth', subGain: 0.35, detune: 10, filter: { type: 'bandpass', freq: 1200, resonance: 8 } },
+                epi:    { type: 'triangle', subType: 'sine', subGain: 0.25, detune: 3, filter: { type: 'lowpass', freq: 2200, resonance: 4 } },
+                rhodes: { type: 'sine', subType: 'triangle', subGain: 0.2, detune: 1, filter: { type: 'lowpass', freq: 2500 } },
             };
             return configs[type] || configs.piano;
         }
@@ -1380,6 +1394,10 @@
             else el.classList.remove('active');
         }
 
+        // Gesture debounce: require holding a pose for multiple consecutive frames
+        let gestureHoldCount = { fist: 0, peace: 0, thumbsUp: 0, thumbsDown: 0 };
+        const GESTURE_HOLD_FRAMES = 10; // must hold for ~10 frames (~330ms at 30fps)
+
         function detectGestures(lm) {
             const now = Date.now();
             const wrist = lm[0], thumbTip = lm[4];
@@ -1393,34 +1411,45 @@
             const pinkyCurled = pinkyTip.y > pinkyMcp.y;
             const allFingersCurled = indexCurled && middleCurled && ringCurled && pinkyCurled;
 
-            // Peace sign = index + middle up, ring + pinky down
-            const peace = !indexCurled && !middleCurled && ringCurled && pinkyCurled;
-            if (peace && now - (gestureState.lastPeace || 0) > 1500) {
+            // Reset non-active gesture counters
+            const isPeace = !indexCurled && !middleCurled && ringCurled && pinkyCurled;
+            const isThumbUp = allFingersCurled && thumbTip.y < wrist.y - 0.12;
+            const isThumbDown = allFingersCurled && thumbTip.y > wrist.y + 0.12;
+            const thumbCurled = Math.abs(thumbTip.y - wrist.y) < 0.06 && Math.abs(thumbTip.x - lm[3].x) < 0.04;
+            const isFist = allFingersCurled && thumbCurled;
+
+            // Increment hold counters for active gestures, reset others
+            gestureHoldCount.fist = isFist ? gestureHoldCount.fist + 1 : 0;
+            gestureHoldCount.peace = isPeace ? gestureHoldCount.peace + 1 : 0;
+            gestureHoldCount.thumbsUp = isThumbUp ? gestureHoldCount.thumbsUp + 1 : 0;
+            gestureHoldCount.thumbsDown = isThumbDown ? gestureHoldCount.thumbsDown + 1 : 0;
+
+            // Only trigger after holding for enough frames + cooldown
+            if (gestureHoldCount.peace >= GESTURE_HOLD_FRAMES && now - (gestureState.lastPeace || 0) > 2000) {
                 gestureState.lastPeace = now;
+                gestureHoldCount.peace = 0;
                 toggleArpeggio();
                 return;
             }
 
-            // Fist = all fingers curled + thumb also curled (not sticking out)
-            const thumbCurled = Math.abs(thumbTip.y - wrist.y) < 0.08;
-            const fist = allFingersCurled && thumbCurled;
-            if (fist && now - (gestureState.lastFist || 0) > 1500) {
+            if (gestureHoldCount.fist >= GESTURE_HOLD_FRAMES && now - (gestureState.lastFist || 0) > 2000) {
                 gestureState.lastFist = now;
+                gestureHoldCount.fist = 0;
                 toggleMute();
                 return;
             }
 
-            // Thumbs up = ONLY thumb extended up, all other fingers must be curled
-            if (allFingersCurled && thumbTip.y < wrist.y - 0.12 && (now - gestureState.lastThumbsUp > 1200)) {
+            if (gestureHoldCount.thumbsUp >= GESTURE_HOLD_FRAMES && now - gestureState.lastThumbsUp > 1500) {
                 gestureState.lastThumbsUp = now;
+                gestureHoldCount.thumbsUp = 0;
                 transposeUp();
                 showToast('up', `👍 Key up → ${getKey()}`);
                 return;
             }
 
-            // Thumbs down = ONLY thumb extended down, all other fingers must be curled
-            if (allFingersCurled && thumbTip.y > wrist.y + 0.12 && (now - gestureState.lastThumbsDown > 1200)) {
+            if (gestureHoldCount.thumbsDown >= GESTURE_HOLD_FRAMES && now - gestureState.lastThumbsDown > 1500) {
                 gestureState.lastThumbsDown = now;
+                gestureHoldCount.thumbsDown = 0;
                 transposeDown();
                 showToast('down', `👎 Key down → ${getKey()}`);
                 return;
