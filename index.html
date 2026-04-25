@@ -89,6 +89,9 @@
 
         /* ===== iOS LIQUID GLASS UI ===== */
         .glass-card {
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(24px) saturate(150%);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
             background: var(--glass-bg);
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
@@ -355,7 +358,7 @@
             border-radius: 14px;
             border: 1px solid var(--glass-border);
             background: var(--glass-bg);
-            backdrop-filter: blur(20px);
+            backdrop-filter: blur(40px) saturate(180%);
             color: #aaa;
             font-size: 1.3rem;
             cursor: pointer;
@@ -800,7 +803,7 @@
 
     <button class="settings-toggle" id="settingsToggle" title="Settings">⚙</button>
     <div class="settings-panel glass-card" id="settingsPanel">
-        <h3>⚙ Settings</h3>
+        <div class="settings-header"><h3>⚙ Settings</h3><button class="settings-close" id="settingsClose" title="Close">✕</button></div>
         <div class="setting-group">
             <label>Sound Preset</label>
             <select id="soundPreset">
@@ -2061,6 +2064,10 @@
         document.getElementById('settingsToggle').addEventListener('click', () => {
             document.getElementById('settingsPanel').classList.toggle('open');
         });
+
+document.getElementById("settingsClose").addEventListener("click", () => {
+    document.getElementById("settingsPanel").classList.remove("open");
+});
 
         document.getElementById('soundPreset').addEventListener('change', (e) => {
             settings.soundPreset = e.target.value;
