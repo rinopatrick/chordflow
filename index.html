@@ -785,10 +785,10 @@
     <div class="arpeggio-indicator" id="arpeggioIndicator"><span class="dot"></span>Arpeggio</div>
     <div class="volume-indicator" id="volumeIndicator"></div>
 
-    <div class="wheel-label left" id="degreeLabel">Scale Degree</div>
-    <div class="wheel-label right" id="qualityLabel">Chord Quality</div>
-    <div class="hand-indicator left-hand" id="leftHand"><span class="dot"></span>Left Hand</div>
-    <div class="hand-indicator right-hand" id="rightHand"><span class="dot"></span>Right Hand</div>
+    <div class="wheel-label left" id="degreeLabel">← Degree</div>
+    <div class="wheel-label right" id="qualityLabel">Quality →</div>
+    <div class="hand-indicator left-hand" id="leftHand"><span class="dot"></span>Hand 1</div>
+    <div class="hand-indicator right-hand" id="rightHand"><span class="dot"></span>Hand 2</div>
 
     <div class="chord-display glass-card" id="chordDisplay">
         <div class="chord-name" id="chordName">—</div>
@@ -846,20 +846,20 @@
         <button class="start-btn" id="startBtn">Start Camera</button>
         <div class="start-instructions">
             <div class="instruction-card">
-                <div class="icon">✋</div>
-                <div class="label">Left hand: Scale degree</div>
+                <div class="icon">👆</div>
+                <div class="label">Point at left wheel → degree, right wheel → quality</div>
             </div>
             <div class="instruction-card">
-                <div class="icon">✋</div>
-                <div class="label">Right hand: Chord quality</div>
+                <div class="icon">✋✋</div>
+                <div class="label">Two hands: one per wheel simultaneously</div>
             </div>
             <div class="instruction-card">
-                <div class="icon">✊</div>
-                <div class="label">Fist = Mute</div>
+                <div class="icon">👍👎</div>
+                <div class="label">Thumbs up/down (fist) = key up/down</div>
             </div>
             <div class="instruction-card">
-                <div class="icon">✌️</div>
-                <div class="label">Peace = Arpeggio</div>
+                <div class="icon">✊✌️</div>
+                <div class="label">Fist = mute | Peace = arpeggio</div>
             </div>
         </div>
     </div>
@@ -1328,7 +1328,8 @@
 
         // ========== HAND TRACKING ==========
         let hands = null, camera = null;
-        let leftFingertip = null, rightFingertip = null;
+        // Each hand stores its fingertip position — any hand can control either wheel
+        let handFingertips = []; // array of {x, y} per detected hand
         let lastLandmarks = null;
 
         function initHandTracking() {
@@ -1353,28 +1354,21 @@
         function onResults(results) {
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
                 lastLandmarks = results.multiHandLandmarks;
-                // First detected hand = left hand (controls degree wheel)
-                if (results.multiHandLandmarks[0]) {
-                    leftFingertip = { x: results.multiHandLandmarks[0][8].x, y: results.multiHandLandmarks[0][8].y };
-                    updateHandIndicator('left', true);
-                    detectLeftHandGesture(results.multiHandLandmarks[0]);
-                } else {
-                    leftFingertip = null;
-                    updateHandIndicator('left', false);
+                handFingertips = [];
+
+                for (let h = 0; h < results.multiHandLandmarks.length; h++) {
+                    const lm = results.multiHandLandmarks[h];
+                    handFingertips.push({ x: lm[8].x, y: lm[8].y });
+                    // Detect gestures on every hand
+                    detectGestures(lm);
                 }
-                // Second detected hand = right hand (controls quality wheel)
-                if (results.multiHandLandmarks[1]) {
-                    rightFingertip = { x: results.multiHandLandmarks[1][8].x, y: results.multiHandLandmarks[1][8].y };
-                    updateHandIndicator('right', true);
-                    detectRightHandGesture(results.multiHandLandmarks[1]);
-                } else {
-                    rightFingertip = null;
-                    updateHandIndicator('right', false);
-                }
+
+                // Update hand indicators
+                updateHandIndicator('left', handFingertips.length >= 1);
+                updateHandIndicator('right', handFingertips.length >= 2);
             } else {
                 lastLandmarks = null;
-                leftFingertip = null;
-                rightFingertip = null;
+                handFingertips = [];
                 updateHandIndicator('left', false);
                 updateHandIndicator('right', false);
             }
@@ -1386,43 +1380,49 @@
             else el.classList.remove('active');
         }
 
-        function detectLeftHandGesture(lm) {
+        function detectGestures(lm) {
             const now = Date.now();
             const wrist = lm[0], thumbTip = lm[4];
             const indexTip = lm[8], middleTip = lm[12], ringTip = lm[16], pinkyTip = lm[20];
             const indexMcp = lm[5], middleMcp = lm[9], ringMcp = lm[13], pinkyMcp = lm[17];
 
-            // Fist = mute
-            const curled = indexTip.y > indexMcp.y && middleTip.y > middleMcp.y && ringTip.y > ringMcp.y && pinkyTip.y > pinkyMcp.y;
-            if (curled && now - (gestureState.lastFist || 0) > 1500) {
+            // Check if all 4 fingers (index, middle, ring, pinky) are curled
+            const indexCurled = indexTip.y > indexMcp.y;
+            const middleCurled = middleTip.y > middleMcp.y;
+            const ringCurled = ringTip.y > ringMcp.y;
+            const pinkyCurled = pinkyTip.y > pinkyMcp.y;
+            const allFingersCurled = indexCurled && middleCurled && ringCurled && pinkyCurled;
+
+            // Peace sign = index + middle up, ring + pinky down
+            const peace = !indexCurled && !middleCurled && ringCurled && pinkyCurled;
+            if (peace && now - (gestureState.lastPeace || 0) > 1500) {
+                gestureState.lastPeace = now;
+                toggleArpeggio();
+                return;
+            }
+
+            // Fist = all fingers curled + thumb also curled (not sticking out)
+            const thumbCurled = Math.abs(thumbTip.y - wrist.y) < 0.08;
+            const fist = allFingersCurled && thumbCurled;
+            if (fist && now - (gestureState.lastFist || 0) > 1500) {
                 gestureState.lastFist = now;
                 toggleMute();
                 return;
             }
 
-            // Thumbs up/down
-            if (thumbTip.y < wrist.y - 0.1 && (now - gestureState.lastThumbsUp > 1200)) {
+            // Thumbs up = ONLY thumb extended up, all other fingers must be curled
+            if (allFingersCurled && thumbTip.y < wrist.y - 0.12 && (now - gestureState.lastThumbsUp > 1200)) {
                 gestureState.lastThumbsUp = now;
                 transposeUp();
                 showToast('up', `👍 Key up → ${getKey()}`);
+                return;
             }
-            if (thumbTip.y > wrist.y + 0.1 && (now - gestureState.lastThumbsDown > 1200)) {
+
+            // Thumbs down = ONLY thumb extended down, all other fingers must be curled
+            if (allFingersCurled && thumbTip.y > wrist.y + 0.12 && (now - gestureState.lastThumbsDown > 1200)) {
                 gestureState.lastThumbsDown = now;
                 transposeDown();
                 showToast('down', `👎 Key down → ${getKey()}`);
-            }
-        }
-
-        function detectRightHandGesture(lm) {
-            const now = Date.now();
-            const indexTip = lm[8], middleTip = lm[12], ringTip = lm[16], pinkyTip = lm[20];
-            const indexMcp = lm[5], middleMcp = lm[9], ringMcp = lm[13], pinkyMcp = lm[17];
-
-            // Peace sign = arpeggio toggle
-            const peace = indexTip.y < indexMcp.y && middleTip.y < middleMcp.y && ringTip.y > ringMcp.y && pinkyTip.y > pinkyMcp.y;
-            if (peace && now - (gestureState.lastPeace || 0) > 1500) {
-                gestureState.lastPeace = now;
-                toggleArpeggio();
                 return;
             }
         }
@@ -1616,18 +1616,17 @@
                 drawHandSkeleton(lastLandmarks);
             }
 
-            // Left hand -> degree wheel
-            if (leftFingertip) {
-                const dHit = hitTestWheel(leftFingertip.x, leftFingertip.y, degreeWheel, 7);
+            // Every hand can hit-test BOTH wheels — selection is based on where the fingertip is
+            for (let i = 0; i < handFingertips.length; i++) {
+                const ft = handFingertips[i];
+                // Test degree wheel
+                const dHit = hitTestWheel(ft.x, ft.y, degreeWheel, 7);
                 if (dHit !== null) lockedDegree = dHit;
-                drawFingertip(leftFingertip.x, leftFingertip.y);
-            }
-
-            // Right hand -> quality wheel
-            if (rightFingertip) {
-                const qHit = hitTestWheel(rightFingertip.x, rightFingertip.y, qualityWheel, QUALITIES.length);
+                // Test quality wheel
+                const qHit = hitTestWheel(ft.x, ft.y, qualityWheel, QUALITIES.length);
                 if (qHit !== null) lockedQuality = qHit;
-                drawFingertip(rightFingertip.x, rightFingertip.y);
+                // Draw fingertip glow
+                drawFingertip(ft.x, ft.y);
             }
 
             currentDegree = lockedDegree;
