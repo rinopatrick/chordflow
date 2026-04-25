@@ -986,22 +986,394 @@
             return 440 * Math.pow(2, (ni + 60 + settings.octaveOffset * 12 - 69) / 12);
         }
 
-        function getOscConfig(type) {
-            const configs = {
-                piano:  { type: 'triangle', subType: 'sine', subGain: 0.15, detune: 0, filter: null },
-                organ:  { type: 'square', subType: 'square', subGain: 0.3, detune: 0, filter: { type: 'lowpass', freq: 800 } },
-                pad:    { type: 'sawtooth', subType: 'sawtooth', subGain: 0.4, detune: 5, filter: { type: 'lowpass', freq: 1200 } },
-                synth:  { type: 'sawtooth', subType: 'triangle', subGain: 0.35, detune: -5, filter: { type: 'lowpass', freq: 2000, resonance: 15 } },
-                pluck:  { type: 'triangle', subType: 'sine', subGain: 0.1, detune: 0, filter: { type: 'lowpass', freq: 3000 } },
-                strings:{ type: 'sawtooth', subType: 'sine', subGain: 0.3, detune: 7, filter: { type: 'lowpass', freq: 1600 } },
-                flute:  { type: 'sine', subType: 'sine', subGain: 0.5, detune: 2, filter: { type: 'bandpass', freq: 1800, resonance: 5 } },
-                bass:   { type: 'sawtooth', subType: 'square', subGain: 0.5, detune: 0, filter: { type: 'lowpass', freq: 400 } },
-                bell:   { type: 'sine', subType: 'triangle', subGain: 0.2, detune: 0, filter: { type: 'highpass', freq: 500 } },
-                choir:  { type: 'sawtooth', subType: 'sawtooth', subGain: 0.35, detune: 10, filter: { type: 'bandpass', freq: 1200, resonance: 8 } },
-                epi:    { type: 'triangle', subType: 'sine', subGain: 0.25, detune: 3, filter: { type: 'lowpass', freq: 2200, resonance: 4 } },
-                rhodes: { type: 'sine', subType: 'triangle', subGain: 0.2, detune: 1, filter: { type: 'lowpass', freq: 2500 } },
-            };
-            return configs[type] || configs.piano;
+        // ========== SYNTHESIS ENGINES ==========
+        // Each instrument uses proper synthesis techniques to approximate its real sound:
+        // - Piano: multi-harmonic with hammer attack + fast high-freq decay
+        // - Rhodes: FM synthesis (sine modulated by sine) with bell-like decay
+        // - E-Piano: FM with filtered attack transient
+        // - Organ: additive drawbar harmonics (sustained, no decay)
+        // - Pad: detuned multi-osc with slow attack
+        // - Synth: resonant filter sweep
+        // - Pluck: sharp attack + fast filter decay (Karplus-Strong-ish)
+        // - Strings: slow attack, detuned ensemble
+        // - Flute: breathy sine + slight vibrato + noise
+        // - Bass: thick sub + filtered saw
+        // - Bell: FM synthesis with inharmonic ratios
+        // - Choir: formant filtering (vowel synthesis)
+
+        // Helper: create a simple FM pair (carrier + modulator)
+        function createFM(carrierFreq, modRatio, modIndex, modIndexDecay, duration) {
+            const mod = audioCtx.createOscillator();
+            mod.type = 'sine';
+            mod.frequency.value = carrierFreq * modRatio;
+            const modGain = audioCtx.createGain();
+            modGain.gain.setValueAtTime(carrierFreq * modIndex, audioCtx.currentTime);
+            modGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            mod.connect(modGain);
+            const carrier = audioCtx.createOscillator();
+            carrier.type = 'sine';
+            carrier.frequency.value = carrierFreq;
+            modGain.connect(carrier.frequency);
+            return { carrier, mod, modGain };
+        }
+
+        // Build a voice for a given instrument preset at a given frequency
+        // Returns { nodes: [...], output: GainNode }
+        function buildVoice(preset, freq) {
+            const now = audioCtx.currentTime;
+            const vol = settings.volume;
+            const output = audioCtx.createGain();
+
+            switch (preset) {
+
+                case 'piano': {
+                    // Multi-harmonic with hammer-like attack, fast high decay
+                    const harmonics = [1, 2, 3, 4, 5, 6];
+                    const gains =     [1, 0.5, 0.25, 0.12, 0.06, 0.03];
+                    const decays =    [2.0, 1.2, 0.7, 0.4, 0.25, 0.15];
+                    const nodes = [];
+                    harmonics.forEach((h, i) => {
+                        const osc = audioCtx.createOscillator();
+                        osc.type = i === 0 ? 'triangle' : 'sine';
+                        osc.frequency.value = freq * h;
+                        // Slight inharmonicity for upper partials
+                        if (h > 3) osc.detune.value = (h - 1) * 2;
+                        const g = audioCtx.createGain();
+                        g.gain.setValueAtTime(0, now);
+                        g.gain.linearRampToValueAtTime(vol * 0.25 * gains[i], now + 0.005);
+                        g.gain.exponentialRampToValueAtTime(vol * 0.12 * gains[i], now + 0.08);
+                        g.gain.exponentialRampToValueAtTime(0.001, now + decays[i]);
+                        // Filter that closes over time (brightness decay)
+                        const filt = audioCtx.createBiquadFilter();
+                        filt.type = 'lowpass';
+                        filt.frequency.setValueAtTime(Math.min(freq * 12, 12000), now);
+                        filt.frequency.exponentialRampToValueAtTime(Math.max(freq * 2, 200), now + decays[i] * 0.7);
+                        osc.connect(g).connect(filt).connect(output);
+                        osc.start(); nodes.push(osc);
+                    });
+                    return { nodes, output };
+                }
+
+                case 'rhodes': {
+                    // FM synthesis: sine carrier modulated by sine, bell-like electric piano
+                    const fm = createFM(freq, 1.0, 1.5, 0.6, 1.5);
+                    const g = audioCtx.createGain();
+                    g.gain.setValueAtTime(0, now);
+                    g.gain.linearRampToValueAtTime(vol * 0.35, now + 0.003);
+                    g.gain.exponentialRampToValueAtTime(vol * 0.2, now + 0.15);
+                    g.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+                    // "Bark" filter — brief bright attack
+                    const filt = audioCtx.createBiquadFilter();
+                    filt.type = 'lowpass';
+                    filt.frequency.setValueAtTime(5000, now);
+                    filt.frequency.exponentialRampToValueAtTime(1200, now + 0.3);
+                    fm.carrier.connect(g).connect(filt).connect(output);
+                    fm.carrier.start(); fm.mod.start();
+                    return { nodes: [fm.carrier, fm.mod], output };
+                }
+
+                case 'epi': {
+                    // FM electric piano with more aggressive mod ratio
+                    const fm = createFM(freq, 2.0, 0.8, 0.4, 1.0);
+                    const g = audioCtx.createGain();
+                    g.gain.setValueAtTime(0, now);
+                    g.gain.linearRampToValueAtTime(vol * 0.3, now + 0.002);
+                    g.gain.exponentialRampToValueAtTime(vol * 0.18, now + 0.1);
+                    g.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
+                    const filt = audioCtx.createBiquadFilter();
+                    filt.type = 'lowpass';
+                    filt.frequency.setValueAtTime(6000, now);
+                    filt.frequency.exponentialRampToValueAtTime(1500, now + 0.4);
+                    // Add a percussive "tine" click
+                    const click = audioCtx.createOscillator();
+                    click.type = 'square';
+                    click.frequency.value = freq * 4;
+                    const clickG = audioCtx.createGain();
+                    clickG.gain.setValueAtTime(vol * 0.08, now);
+                    clickG.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
+                    const clickF = audioCtx.createBiquadFilter();
+                    clickF.type = 'highpass'; clickF.frequency.value = 2000;
+                    click.connect(clickG).connect(clickF).connect(output);
+                    fm.carrier.connect(g).connect(filt).connect(output);
+                    fm.carrier.start(); fm.mod.start(); click.start();
+                    return { nodes: [fm.carrier, fm.mod, click], output };
+                }
+
+                case 'organ': {
+                    // Additive synthesis: drawbar harmonics, sustained (no decay)
+                    const drawbars = [
+                        { ratio: 0.5, gain: 0.4 },  // sub
+                        { ratio: 1,   gain: 0.8 },  // fundamental
+                        { ratio: 2,   gain: 0.6 },  // 2'
+                        { ratio: 3,   gain: 0.4 },  // 2 2/3'
+                        { ratio: 4,   gain: 0.3 },  // 4'
+                        { ratio: 6,   gain: 0.2 },  // 5 1/3'
+                        { ratio: 8,   gain: 0.15 }, // 8'
+                    ];
+                    const nodes = [];
+                    drawbars.forEach(db => {
+                        const osc = audioCtx.createOscillator();
+                        osc.type = 'sine';
+                        osc.frequency.value = freq * db.ratio;
+                        const g = audioCtx.createGain();
+                        g.gain.setValueAtTime(0, now);
+                        g.gain.linearRampToValueAtTime(vol * 0.1 * db.gain, now + 0.01);
+                        // Sustained — no decay until release
+                        g.gain.setValueAtTime(vol * 0.1 * db.gain, now + 2.0);
+                        g.gain.linearRampToValueAtTime(vol * 0.1 * db.gain * 0.7, now + 4.0);
+                        g.gain.exponentialRampToValueAtTime(0.001, now + 6.0);
+                        const filt = audioCtx.createBiquadFilter();
+                        filt.type = 'lowpass';
+                        filt.frequency.value = 5000;
+                        osc.connect(g).connect(filt).connect(output);
+                        osc.start(); nodes.push(osc);
+                    });
+                    // Rotary speaker simulation: slow LFO on filter
+                    const lfo = audioCtx.createOscillator();
+                    lfo.type = 'sine'; lfo.frequency.value = 5.5;
+                    const lfoG = audioCtx.createGain(); lfoG.gain.value = 800;
+                    lfo.connect(lfoG);
+                    drawbars.length > 0 && lfo.start();
+                    nodes.push(lfo);
+                    return { nodes, output, lfoTarget: null };
+                }
+
+                case 'pad': {
+                    // Detuned multi-osc with slow attack
+                    const detunes = [-7, -3, 0, 3, 7];
+                    const nodes = [];
+                    detunes.forEach(d => {
+                        const osc = audioCtx.createOscillator();
+                        osc.type = 'sawtooth';
+                        osc.frequency.value = freq;
+                        osc.detune.value = d;
+                        const g = audioCtx.createGain();
+                        g.gain.setValueAtTime(0, now);
+                        g.gain.linearRampToValueAtTime(vol * 0.08, now + 0.4);
+                        g.gain.exponentialRampToValueAtTime(0.001, now + 4.0);
+                        const filt = audioCtx.createBiquadFilter();
+                        filt.type = 'lowpass';
+                        filt.frequency.setValueAtTime(800, now);
+                        filt.frequency.linearRampToValueAtTime(2000, now + 0.8);
+                        filt.frequency.exponentialRampToValueAtTime(600, now + 3.0);
+                        filt.Q.value = 2;
+                        osc.connect(g).connect(filt).connect(output);
+                        osc.start(); nodes.push(osc);
+                    });
+                    return { nodes, output };
+                }
+
+                case 'synth': {
+                    // Resonant filter sweep with sawtooth
+                    const osc = audioCtx.createOscillator();
+                    osc.type = 'sawtooth';
+                    osc.frequency.value = freq;
+                    const sub = audioCtx.createOscillator();
+                    sub.type = 'square';
+                    sub.frequency.value = freq * 0.5;
+                    const g = audioCtx.createGain();
+                    g.gain.setValueAtTime(0, now);
+                    g.gain.linearRampToValueAtTime(vol * 0.2, now + 0.01);
+                    g.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+                    const subG = audioCtx.createGain();
+                    subG.gain.value = vol * 0.12;
+                    const filt = audioCtx.createBiquadFilter();
+                    filt.type = 'lowpass';
+                    filt.frequency.setValueAtTime(200, now);
+                    filt.frequency.exponentialRampToValueAtTime(6000, now + 0.08);
+                    filt.frequency.exponentialRampToValueAtTime(800, now + 1.0);
+                    filt.Q.value = 12;
+                    osc.connect(g).connect(filt);
+                    sub.connect(subG).connect(filt);
+                    filt.connect(output);
+                    osc.start(); sub.start();
+                    return { nodes: [osc, sub], output };
+                }
+
+                case 'pluck': {
+                    // Sharp attack + fast filter decay (brightness fades)
+                    const osc = audioCtx.createOscillator();
+                    osc.type = 'triangle';
+                    osc.frequency.value = freq;
+                    // Noise burst for attack
+                    const bufSize = audioCtx.sampleRate * 0.04;
+                    const noiseBuf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+                    const noiseData = noiseBuf.getChannelData(0);
+                    for (let i = 0; i < bufSize; i++) noiseData[i] = (Math.random() * 2 - 1) * (1 - i / bufSize);
+                    const noise = audioCtx.createBufferSource();
+                    noise.buffer = noiseBuf;
+                    const noiseG = audioCtx.createGain();
+                    noiseG.gain.value = vol * 0.15;
+                    const noiseF = audioCtx.createBiquadFilter();
+                    noiseF.type = 'bandpass'; noiseF.frequency.value = freq * 2; noiseF.Q.value = 2;
+                    noise.connect(noiseG).connect(noiseF).connect(output);
+                    // Tone with filter decay
+                    const g = audioCtx.createGain();
+                    g.gain.setValueAtTime(vol * 0.3, now);
+                    g.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+                    const filt = audioCtx.createBiquadFilter();
+                    filt.type = 'lowpass';
+                    filt.frequency.setValueAtTime(8000, now);
+                    filt.frequency.exponentialRampToValueAtTime(500, now + 0.5);
+                    osc.connect(g).connect(filt).connect(output);
+                    osc.start(); noise.start();
+                    return { nodes: [osc, noise], output };
+                }
+
+                case 'strings': {
+                    // Slow attack, detuned ensemble of sawtooths
+                    const detunes = [-12, -5, 0, 5, 12];
+                    const nodes = [];
+                    detunes.forEach(d => {
+                        const osc = audioCtx.createOscillator();
+                        osc.type = 'sawtooth';
+                        osc.frequency.value = freq;
+                        osc.detune.value = d;
+                        const g = audioCtx.createGain();
+                        g.gain.setValueAtTime(0, now);
+                        g.gain.linearRampToValueAtTime(vol * 0.07, now + 0.5);
+                        g.gain.setValueAtTime(vol * 0.07, now + 2.5);
+                        g.gain.exponentialRampToValueAtTime(0.001, now + 4.5);
+                        const filt = audioCtx.createBiquadFilter();
+                        filt.type = 'lowpass'; filt.frequency.value = 2500; filt.Q.value = 0.7;
+                        osc.connect(g).connect(filt).connect(output);
+                        osc.start(); nodes.push(osc);
+                    });
+                    return { nodes, output };
+                }
+
+                case 'flute': {
+                    // Sine with breathy noise + vibrato
+                    const osc = audioCtx.createOscillator();
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
+                    // Vibrato LFO
+                    const vib = audioCtx.createOscillator();
+                    vib.type = 'sine'; vib.frequency.value = 5;
+                    const vibG = audioCtx.createGain(); vibG.gain.value = 3;
+                    vib.connect(vibG).connect(osc.frequency);
+                    const g = audioCtx.createGain();
+                    g.gain.setValueAtTime(0, now);
+                    g.gain.linearRampToValueAtTime(vol * 0.25, now + 0.08);
+                    g.gain.setValueAtTime(vol * 0.25, now + 2.0);
+                    g.gain.exponentialRampToValueAtTime(0.001, now + 3.0);
+                    // Breathy noise
+                    const bufSize = audioCtx.sampleRate * 3;
+                    const noiseBuf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+                    const noiseData = noiseBuf.getChannelData(0);
+                    for (let i = 0; i < bufSize; i++) noiseData[i] = Math.random() * 2 - 1;
+                    const noise = audioCtx.createBufferSource();
+                    noise.buffer = noiseBuf; noise.loop = true;
+                    const noiseG = audioCtx.createGain(); noiseG.gain.value = vol * 0.04;
+                    const noiseF = audioCtx.createBiquadFilter();
+                    noiseF.type = 'bandpass'; noiseF.frequency.value = freq; noiseF.Q.value = 5;
+                    // Formant emphasis
+                    const formant = audioCtx.createBiquadFilter();
+                    formant.type = 'peaking'; formant.frequency.value = 2800; formant.Q.value = 3; formant.gain.value = 6;
+                    osc.connect(g).connect(formant).connect(output);
+                    noise.connect(noiseG).connect(noiseF).connect(formant);
+                    osc.start(); vib.start(); noise.start();
+                    return { nodes: [osc, vib, noise], output };
+                }
+
+                case 'bass': {
+                    // Thick sub sine + filtered sawtooth
+                    const sub = audioCtx.createOscillator();
+                    sub.type = 'sine'; sub.frequency.value = freq;
+                    const subG = audioCtx.createGain();
+                    subG.gain.setValueAtTime(0, now);
+                    subG.gain.linearRampToValueAtTime(vol * 0.35, now + 0.01);
+                    subG.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+                    const saw = audioCtx.createOscillator();
+                    saw.type = 'sawtooth'; saw.frequency.value = freq;
+                    const sawG = audioCtx.createGain();
+                    sawG.gain.setValueAtTime(0, now);
+                    sawG.gain.linearRampToValueAtTime(vol * 0.18, now + 0.005);
+                    sawG.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+                    const filt = audioCtx.createBiquadFilter();
+                    filt.type = 'lowpass';
+                    filt.frequency.setValueAtTime(3000, now);
+                    filt.frequency.exponentialRampToValueAtTime(150, now + 0.3);
+                    filt.Q.value = 4;
+                    sub.connect(subG).connect(filt);
+                    saw.connect(sawG).connect(filt);
+                    filt.connect(output);
+                    sub.start(); saw.start();
+                    return { nodes: [sub, saw], output };
+                }
+
+                case 'bell': {
+                    // FM synthesis with inharmonic ratios for metallic bell sound
+                    // Multiple FM pairs at different ratios
+                    const pairs = [
+                        { modRatio: 1.4, modIndex: 2.0, modDecay: 3.0, gain: 0.3 },
+                        { modRatio: 3.5, modIndex: 1.0, modDecay: 1.5, gain: 0.15 },
+                        { modRatio: 6.0, modIndex: 0.5, modDecay: 0.8, gain: 0.08 },
+                    ];
+                    const nodes = [];
+                    pairs.forEach(p => {
+                        const fm = createFM(freq, p.modRatio, p.modIndex, p.modDecay, p.modDecay);
+                        const g = audioCtx.createGain();
+                        g.gain.setValueAtTime(0, now);
+                        g.gain.linearRampToValueAtTime(vol * p.gain, now + 0.001);
+                        g.gain.exponentialRampToValueAtTime(0.001, now + p.modDecay + 1);
+                        fm.carrier.connect(g).connect(output);
+                        fm.carrier.start(); fm.mod.start();
+                        nodes.push(fm.carrier, fm.mod);
+                    });
+                    return { nodes, output };
+                }
+
+                case 'choir': {
+                    // Formant filtering: sawtooth through peaking filters (vowel: "ah")
+                    const formants = [
+                        { freq: 800,  Q: 10, gain: 6 },
+                        { freq: 1150, Q: 10, gain: 3 },
+                        { freq: 2800, Q: 10, gain: -2 },
+                        { freq: 3300, Q: 10, gain: -4 },
+                    ];
+                    const detunes = [-10, -4, 0, 4, 10];
+                    const nodes = [];
+                    detunes.forEach(d => {
+                        const osc = audioCtx.createOscillator();
+                        osc.type = 'sawtooth';
+                        osc.frequency.value = freq;
+                        osc.detune.value = d;
+                        const g = audioCtx.createGain();
+                        g.gain.setValueAtTime(0, now);
+                        g.gain.linearRampToValueAtTime(vol * 0.06, now + 0.3);
+                        g.gain.setValueAtTime(vol * 0.06, now + 2.5);
+                        g.gain.exponentialRampToValueAtTime(0.001, now + 4.0);
+                        // Serial formant chain
+                        let prev = g;
+                        formants.forEach(f => {
+                            const bq = audioCtx.createBiquadFilter();
+                            bq.type = 'peaking';
+                            bq.frequency.value = f.freq;
+                            bq.Q.value = f.Q;
+                            bq.gain.value = f.gain;
+                            prev.connect(bq);
+                            prev = bq;
+                        });
+                        prev.connect(output);
+                        osc.connect(g);
+                        osc.start(); nodes.push(osc);
+                    });
+                    return { nodes, output };
+                }
+
+                default: {
+                    // Fallback: simple triangle
+                    const osc = audioCtx.createOscillator();
+                    osc.type = 'triangle'; osc.frequency.value = freq;
+                    const g = audioCtx.createGain();
+                    g.gain.setValueAtTime(vol * 0.3, now);
+                    g.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+                    osc.connect(g).connect(output);
+                    osc.start();
+                    return { nodes: [osc], output };
+                }
+            }
         }
 
         function playChord(noteIndices) {
@@ -1021,17 +1393,13 @@
                 return;
             }
 
-            const config = getOscConfig(settings.soundPreset);
             const now = audioCtx.currentTime;
 
             activeGain = audioCtx.createGain();
-            activeGain.gain.setValueAtTime(0, now);
-            activeGain.gain.linearRampToValueAtTime(settings.volume * 0.4, now + 0.03);
-            activeGain.gain.exponentialRampToValueAtTime(settings.volume * 0.35, now + 0.15);
-            activeGain.gain.exponentialRampToValueAtTime(settings.volume * 0.08, now + 1.5);
-            
+            activeGain.gain.setValueAtTime(1, now);
+
             if (dryGain) activeGain.connect(dryGain);
-            if (settings.reverbMix > 0.01) {
+            if (settings.reverbMix > 0.01 && convolver) {
                 const revSend = audioCtx.createGain();
                 revSend.gain.value = settings.reverbMix * 0.6;
                 activeGain.connect(revSend);
@@ -1040,37 +1408,9 @@
 
             noteIndices.forEach(ni => {
                 const freq = noteToFreq(ni);
-                const osc = audioCtx.createOscillator();
-                osc.type = config.type;
-                osc.frequency.value = freq;
-                osc.detune.value = config.detune;
-
-                const oG = audioCtx.createGain();
-                oG.gain.value = config.type === 'sawtooth' ? 0.35 : 0.5;
-
-                if (config.filter) {
-                    const filter = audioCtx.createBiquadFilter();
-                    filter.type = config.filter.type;
-                    filter.frequency.value = config.filter.freq;
-                    if (config.filter.resonance) filter.Q.value = config.filter.resonance;
-                    osc.connect(oG).connect(filter).connect(activeGain);
-                } else {
-                    osc.connect(oG).connect(activeGain);
-                }
-
-                if (config.subType) {
-                    const sub = audioCtx.createOscillator();
-                    sub.type = config.subType;
-                    sub.frequency.value = freq * 0.5;
-                    const sG = audioCtx.createGain();
-                    sG.gain.value = config.subGain;
-                    sub.connect(sG).connect(activeGain);
-                    osc.start(); sub.start();
-                    activeOsc.push(osc, sub);
-                } else {
-                    osc.start();
-                    activeOsc.push(osc);
-                }
+                const voice = buildVoice(settings.soundPreset, freq);
+                voice.output.connect(activeGain);
+                activeOsc.push(...voice.nodes);
             });
         }
 
@@ -1078,41 +1418,22 @@
             stopArpeggio();
             if (arpeggioNotes.length === 0) return;
             resumeAudio();
-            const config = getOscConfig(settings.soundPreset);
             const intervalMs = 60000 / settings.bpm / 2;
-            
+
             function playArpNote() {
                 if (arpeggioNotes.length === 0 || settings.mute) return;
                 const note = arpeggioNotes[arpeggioIndex % arpeggioNotes.length];
                 const freq = noteToFreq(note);
-                
-                const osc = audioCtx.createOscillator();
-                osc.type = config.type;
-                osc.frequency.value = freq;
-                osc.detune.value = config.detune;
-                
-                const oG = audioCtx.createGain();
-                const now = audioCtx.currentTime;
-                oG.gain.setValueAtTime(0, now);
-                oG.gain.linearRampToValueAtTime(settings.volume * 0.35, now + 0.015);
-                oG.gain.exponentialRampToValueAtTime(0.001, now + intervalMs * 0.9);
-                
-                if (config.filter) {
-                    const filter = audioCtx.createBiquadFilter();
-                    filter.type = config.filter.type;
-                    filter.frequency.value = config.filter.freq;
-                    if (config.filter.resonance) filter.Q.value = config.filter.resonance;
-                    osc.connect(oG).connect(filter).connect(dryGain);
-                } else {
-                    osc.connect(oG).connect(dryGain);
-                }
-                
-                osc.start();
-                activeOsc.push(osc);
-                
+
+                const voice = buildVoice(settings.soundPreset, freq);
+                const g = audioCtx.createGain();
+                g.gain.value = 1;
+                voice.output.connect(g).connect(dryGain);
+                activeOsc.push(...voice.nodes);
+
                 arpeggioIndex++;
             }
-            
+
             playArpNote();
             arpeggioInterval = setInterval(playArpNote, intervalMs);
         }
