@@ -385,7 +385,11 @@
         }
 
         .setting-group {
-            margin-bottom: 20px;
+            margin-bottom: 18px;
+            padding: 14px 16px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.04);
+            border: 0.5px solid rgba(255,255,255,0.08);
         }
 
         .setting-group label {
@@ -803,7 +807,7 @@
 
     <button class="settings-toggle" id="settingsToggle" title="Settings">⚙</button>
     <div class="settings-panel glass-card" id="settingsPanel">
-        <div class="settings-header"><h3>⚙ Settings</h3><button class="settings-close" id="settingsClose" title="Close">✕</button></div>
+        <div style="padding: 0 24px 30px;"><div class="settings-header"><h3>⚙ Settings</h3><button class="settings-close" id="settingsClose" title="Close">✕</button></div>
         <div class="setting-group">
             <label>Sound Preset</label>
             <select id="soundPreset">
@@ -823,8 +827,8 @@
         </div>
         <div class="setting-group">
             <label>Volume</label>
-            <input type="range" id="volumeSlider" min="0" max="100" value="50">
-            <div class="value-display" id="volumeValue">50%</div>
+            <input type="range" id="volumeSlider" min="0" max="100" value="70">
+            <div class="value-display" id="volumeValue">70%</div>
         </div>
         <div class="setting-group">
             <label>Octave Offset</label>
@@ -840,7 +844,7 @@
             <label>Reverb Mix</label>
             <input type="range" id="reverbSlider" min="0" max="100" value="30">
             <div class="value-display" id="reverbValue">30%</div>
-        </div>
+        </div></div>
     </div>
 
     <div class="recorder-bar glass-card">
@@ -915,7 +919,7 @@
         // ========== SETTINGS ==========
         const settings = {
             soundPreset: 'piano',
-            volume: 0.5,
+            volume: 0.7,
             octaveOffset: 0,
             bpm: 120,
             reverbMix: 0.3,
@@ -1043,8 +1047,8 @@
                         if (h > 3) osc.detune.value = (h - 1) * 2;
                         const g = audioCtx.createGain();
                         g.gain.setValueAtTime(0, now);
-                        g.gain.linearRampToValueAtTime(vol * 0.25 * gains[i], now + 0.005);
-                        g.gain.exponentialRampToValueAtTime(vol * 0.12 * gains[i], now + 0.08);
+                        g.gain.linearRampToValueAtTime(vol * 0.6 * gains[i], now + 0.005);
+                        g.gain.exponentialRampToValueAtTime(vol * 0.3 * gains[i], now + 0.08);
                         g.gain.exponentialRampToValueAtTime(0.001, now + decays[i]);
                         // Filter that closes over time (brightness decay)
                         const filt = audioCtx.createBiquadFilter();
@@ -1062,8 +1066,8 @@
                     const fm = createFM(freq, 1.0, 1.5, 0.6, 1.5);
                     const g = audioCtx.createGain();
                     g.gain.setValueAtTime(0, now);
-                    g.gain.linearRampToValueAtTime(vol * 0.35, now + 0.003);
-                    g.gain.exponentialRampToValueAtTime(vol * 0.2, now + 0.15);
+                    g.gain.linearRampToValueAtTime(vol * 0.85, now + 0.003);
+                    g.gain.exponentialRampToValueAtTime(vol * 0.5, now + 0.15);
                     g.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
                     // "Bark" filter — brief bright attack
                     const filt = audioCtx.createBiquadFilter();
@@ -1080,8 +1084,8 @@
                     const fm = createFM(freq, 2.0, 0.8, 0.4, 1.0);
                     const g = audioCtx.createGain();
                     g.gain.setValueAtTime(0, now);
-                    g.gain.linearRampToValueAtTime(vol * 0.3, now + 0.002);
-                    g.gain.exponentialRampToValueAtTime(vol * 0.18, now + 0.1);
+                    g.gain.linearRampToValueAtTime(vol * 0.75, now + 0.002);
+                    g.gain.exponentialRampToValueAtTime(vol * 0.45, now + 0.1);
                     g.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
                     const filt = audioCtx.createBiquadFilter();
                     filt.type = 'lowpass';
@@ -1092,7 +1096,7 @@
                     click.type = 'square';
                     click.frequency.value = freq * 4;
                     const clickG = audioCtx.createGain();
-                    clickG.gain.setValueAtTime(vol * 0.08, now);
+                    clickG.gain.setValueAtTime(vol * 0.2, now);
                     clickG.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
                     const clickF = audioCtx.createBiquadFilter();
                     clickF.type = 'highpass'; clickF.frequency.value = 2000;
@@ -1120,10 +1124,10 @@
                         osc.frequency.value = freq * db.ratio;
                         const g = audioCtx.createGain();
                         g.gain.setValueAtTime(0, now);
-                        g.gain.linearRampToValueAtTime(vol * 0.1 * db.gain, now + 0.01);
+                        g.gain.linearRampToValueAtTime(vol * 0.25 * db.gain, now + 0.01);
                         // Sustained — no decay until release
-                        g.gain.setValueAtTime(vol * 0.1 * db.gain, now + 2.0);
-                        g.gain.linearRampToValueAtTime(vol * 0.1 * db.gain * 0.7, now + 4.0);
+                        g.gain.setValueAtTime(vol * 0.25 * db.gain, now + 2.0);
+                        g.gain.linearRampToValueAtTime(vol * 0.25 * db.gain * 0.7, now + 4.0);
                         g.gain.exponentialRampToValueAtTime(0.001, now + 6.0);
                         const filt = audioCtx.createBiquadFilter();
                         filt.type = 'lowpass';
@@ -1152,7 +1156,7 @@
                         osc.detune.value = d;
                         const g = audioCtx.createGain();
                         g.gain.setValueAtTime(0, now);
-                        g.gain.linearRampToValueAtTime(vol * 0.08, now + 0.4);
+                        g.gain.linearRampToValueAtTime(vol * 0.2, now + 0.4);
                         g.gain.exponentialRampToValueAtTime(0.001, now + 4.0);
                         const filt = audioCtx.createBiquadFilter();
                         filt.type = 'lowpass';
@@ -1176,7 +1180,7 @@
                     sub.frequency.value = freq * 0.5;
                     const g = audioCtx.createGain();
                     g.gain.setValueAtTime(0, now);
-                    g.gain.linearRampToValueAtTime(vol * 0.2, now + 0.01);
+                    g.gain.linearRampToValueAtTime(vol * 0.5, now + 0.01);
                     g.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
                     const subG = audioCtx.createGain();
                     subG.gain.value = vol * 0.12;
@@ -1212,7 +1216,7 @@
                     noise.connect(noiseG).connect(noiseF).connect(output);
                     // Tone with filter decay
                     const g = audioCtx.createGain();
-                    g.gain.setValueAtTime(vol * 0.3, now);
+                    g.gain.setValueAtTime(vol * 0.75, now);
                     g.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
                     const filt = audioCtx.createBiquadFilter();
                     filt.type = 'lowpass';
@@ -1234,8 +1238,8 @@
                         osc.detune.value = d;
                         const g = audioCtx.createGain();
                         g.gain.setValueAtTime(0, now);
-                        g.gain.linearRampToValueAtTime(vol * 0.07, now + 0.5);
-                        g.gain.setValueAtTime(vol * 0.07, now + 2.5);
+                        g.gain.linearRampToValueAtTime(vol * 0.18, now + 0.5);
+                        g.gain.setValueAtTime(vol * 0.18, now + 2.5);
                         g.gain.exponentialRampToValueAtTime(0.001, now + 4.5);
                         const filt = audioCtx.createBiquadFilter();
                         filt.type = 'lowpass'; filt.frequency.value = 2500; filt.Q.value = 0.7;
@@ -1267,7 +1271,7 @@
                     for (let i = 0; i < bufSize; i++) noiseData[i] = Math.random() * 2 - 1;
                     const noise = audioCtx.createBufferSource();
                     noise.buffer = noiseBuf; noise.loop = true;
-                    const noiseG = audioCtx.createGain(); noiseG.gain.value = vol * 0.04;
+                    const noiseG = audioCtx.createGain(); noiseG.gain.value = vol * 0.1;
                     const noiseF = audioCtx.createBiquadFilter();
                     noiseF.type = 'bandpass'; noiseF.frequency.value = freq; noiseF.Q.value = 5;
                     // Formant emphasis
@@ -1285,13 +1289,13 @@
                     sub.type = 'sine'; sub.frequency.value = freq;
                     const subG = audioCtx.createGain();
                     subG.gain.setValueAtTime(0, now);
-                    subG.gain.linearRampToValueAtTime(vol * 0.35, now + 0.01);
+                    subG.gain.linearRampToValueAtTime(vol * 0.85, now + 0.01);
                     subG.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
                     const saw = audioCtx.createOscillator();
                     saw.type = 'sawtooth'; saw.frequency.value = freq;
                     const sawG = audioCtx.createGain();
                     sawG.gain.setValueAtTime(0, now);
-                    sawG.gain.linearRampToValueAtTime(vol * 0.18, now + 0.005);
+                    sawG.gain.linearRampToValueAtTime(vol * 0.45, now + 0.005);
                     sawG.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
                     const filt = audioCtx.createBiquadFilter();
                     filt.type = 'lowpass';
@@ -1344,8 +1348,8 @@
                         osc.detune.value = d;
                         const g = audioCtx.createGain();
                         g.gain.setValueAtTime(0, now);
-                        g.gain.linearRampToValueAtTime(vol * 0.06, now + 0.3);
-                        g.gain.setValueAtTime(vol * 0.06, now + 2.5);
+                        g.gain.linearRampToValueAtTime(vol * 0.15, now + 0.3);
+                        g.gain.setValueAtTime(vol * 0.15, now + 2.5);
                         g.gain.exponentialRampToValueAtTime(0.001, now + 4.0);
                         // Serial formant chain
                         let prev = g;
@@ -1370,7 +1374,7 @@
                     const osc = audioCtx.createOscillator();
                     osc.type = 'triangle'; osc.frequency.value = freq;
                     const g = audioCtx.createGain();
-                    g.gain.setValueAtTime(vol * 0.3, now);
+                    g.gain.setValueAtTime(vol * 0.75, now);
                     g.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
                     osc.connect(g).connect(output);
                     osc.start();
@@ -1722,6 +1726,11 @@
         let gestureHoldCount = { fist: 0, peace: 0, thumbsUp: 0, thumbsDown: 0 };
         const GESTURE_HOLD_FRAMES = 10; // must hold for ~10 frames (~330ms at 30fps)
 
+        // Pinch/spread volume control state
+        let pinchBaseDistance = null;  // baseline thumb-index distance at pinch start
+        let pinchBaseVolume = null;    // baseline volume at pinch start
+        let isPinchActive = false;     // whether we're actively in pinch volume mode
+
         function detectGestures(lm) {
             const now = Date.now();
             const wrist = lm[0], thumbTip = lm[4];
@@ -1734,6 +1743,41 @@
             const ringCurled = ringTip.y > ringMcp.y;
             const pinkyCurled = pinkyTip.y > pinkyMcp.y;
             const allFingersCurled = indexCurled && middleCurled && ringCurled && pinkyCurled;
+
+            // === PINCH/SPREAD VOLUME CONTROL ===
+            // Active when: thumb and index are close together (pinched) OR spreading apart
+            // Middle, ring, pinky must be curled to avoid conflict with pointing at wheels
+            const thumbIndexDist = Math.sqrt(
+                Math.pow(thumbTip.x - indexTip.x, 2) + Math.pow(thumbTip.y - indexTip.y, 2)
+            );
+            const otherFingersCurled = middleCurled && ringCurled && pinkyCurled;
+
+            // Start pinch mode: thumb+index close together + other fingers curled
+            if (otherFingersCurled && !indexCurled && thumbIndexDist < 0.06 && !isPinchActive) {
+                isPinchActive = true;
+                pinchBaseDistance = thumbIndexDist;
+                pinchBaseVolume = settings.volume;
+            }
+
+            // During pinch mode: track distance changes to adjust volume
+            if (isPinchActive) {
+                if (otherFingersCurled && !indexCurled) {
+                    // Map distance change to volume change
+                    const distDelta = thumbIndexDist - pinchBaseDistance;
+                    // 0.15 distance ≈ full volume range
+                    const volumeDelta = distDelta / 0.15;
+                    settings.volume = Math.max(0, Math.min(1, pinchBaseVolume + volumeDelta));
+                    if (masterGain) masterGain.gain.value = settings.volume;
+                    updateVolumeUI();
+                    showVolumeIndicator();
+                } else {
+                    // Exit pinch mode when hand opens or pose changes
+                    isPinchActive = false;
+                    pinchBaseDistance = null;
+                    pinchBaseVolume = null;
+                }
+                return; // Skip other gestures while pinching
+            }
 
             // Reset non-active gesture counters
             const isPeace = !indexCurled && !middleCurled && ringCurled && pinkyCurled;
