@@ -1964,6 +1964,10 @@
 
         // ========== HIT DETECTION ==========
         let lockedDegree = null, lockedQuality = null;
+        // Dwell-time debounce: fingertip must stay on same segment for N frames before locking
+        let pendingDegree = null, pendingQuality = null;
+        let degreeHoldFrames = 0, qualityHoldFrames = 0;
+        const DWELL_FRAMES = 5; // ~170ms at 30fps
 
         function hitTestWheel(fx, fy, w, segments) {
             const video = document.getElementById('webcam');
@@ -2013,17 +2017,36 @@
                 drawHandSkeleton(lastLandmarks);
             }
 
-            // Every hand can hit-test BOTH wheels — selection is based on where the fingertip is
+            // Every hand can hit-test BOTH wheels — with dwell-time debounce
+            let rawDegree = null, rawQuality = null;
             for (let i = 0; i < handFingertips.length; i++) {
                 const ft = handFingertips[i];
-                // Test degree wheel
                 const dHit = hitTestWheel(ft.x, ft.y, degreeWheel, 7);
-                if (dHit !== null) lockedDegree = dHit;
-                // Test quality wheel
+                if (dHit !== null) rawDegree = dHit;
                 const qHit = hitTestWheel(ft.x, ft.y, qualityWheel, QUALITIES.length);
-                if (qHit !== null) lockedQuality = qHit;
-                // Draw fingertip glow
+                if (qHit !== null) rawQuality = qHit;
                 drawFingertip(ft.x, ft.y);
+            }
+
+            // Dwell-time debounce: only lock selection after holding same segment for DWELL_FRAMES
+            if (rawDegree !== null) {
+                if (rawDegree === pendingDegree) {
+                    degreeHoldFrames++;
+                    if (degreeHoldFrames >= DWELL_FRAMES) lockedDegree = rawDegree;
+                } else {
+                    pendingDegree = rawDegree;
+                    degreeHoldFrames = 1;
+                }
+            }
+
+            if (rawQuality !== null) {
+                if (rawQuality === pendingQuality) {
+                    qualityHoldFrames++;
+                    if (qualityHoldFrames >= DWELL_FRAMES) lockedQuality = rawQuality;
+                } else {
+                    pendingQuality = rawQuality;
+                    qualityHoldFrames = 1;
+                }
             }
 
             currentDegree = lockedDegree;
